@@ -10,11 +10,13 @@
 // libMesh includes
 #include "libmesh/quadrature.h"
 
-template<>
-InputParameters validParams<Air>()
+template <>
+InputParameters
+validParams<Air>()
 {
   InputParameters params = validParams<NavierStokesMaterial>();
 
+  params.addClassDescription("Air.");
   // Allow the user to specify the dynamic viscosity from the input file,
   // otherwise use the value at 300K by default
   params.addParam<Real>("dynamic_viscosity", 1.9830e-5, "in kg/m/s");
@@ -22,13 +24,10 @@ InputParameters validParams<Air>()
   return params;
 }
 
-Air::Air(const InputParameters & parameters) :
-    NavierStokesMaterial(parameters),
-    _mu(getParam<Real>("dynamic_viscosity"))
+Air::Air(const InputParameters & parameters)
+  : NavierStokesMaterial(parameters), _mu(getParam<Real>("dynamic_viscosity"))
 {
 }
-
-
 
 void
 Air::computeProperties()

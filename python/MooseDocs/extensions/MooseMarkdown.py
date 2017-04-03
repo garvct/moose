@@ -1,37 +1,31 @@
 import os
-import re
-import subprocess
 import markdown
 import collections
-import yaml
 import logging
 log = logging.getLogger(__name__)
 
 from MooseObjectSyntax import MooseObjectSyntax
-from MooseSystemSyntax import MooseSystemSyntax
+from MooseParameters import MooseParameters
+from MooseDescription import MooseDescription
+from MooseActionSyntax import MooseActionSyntax
 from MooseTextFile import MooseTextFile
 from MooseImageFile import MooseImageFile
+from MooseFigure import MooseFigure
+from MooseFigureReference import MooseFigureReference
+from MooseEquationReference import MooseEquationReference
+from MooseInlineProcessor import MooseInlineProcessor
 from MooseInputBlock import MooseInputBlock
 from MooseCppMethod import MooseCppMethod
 from MoosePackageParser import MoosePackageParser
-from MooseMarkdownLinkPreprocessor import MooseMarkdownLinkPreprocessor
-from MooseCarousel import MooseCarousel
+from MooseSlider import MooseSlider
 from MooseDiagram import MooseDiagram
 from MooseCSS import MooseCSS
 from MooseSlidePreprocessor import MooseSlidePreprocessor
 from MooseBuildStatus import MooseBuildStatus
 from MooseBibtex import MooseBibtex
+from MooseActionList import MooseActionList
 import MooseDocs
-import utils
-
-cache = {'exe' : None,
-         'yaml' : None,
-         'root' : None,
-         'pages' : [],
-         'input_files' : collections.OrderedDict(),
-         'child_objects': collections.OrderedDict(),
-         'syntax': dict()
-        }
+import mooseutils
 
 class MooseMarkdown(markdown.Extension):
     """
@@ -40,99 +34,115 @@ class MooseMarkdown(markdown.Extension):
 
     def __init__(self, **kwargs):
 
-        # Determine the root directory via git
-        global cache
-        if not cache['root']:
-            cache['root'] = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.STDOUT).strip('\n')
+        # Storage for the MooseLinkDatabase object
+        self.syntax = None
 
         # Define the configuration options
         self.config = dict()
-        self.config['root'] = [cache['root'], "The root directory of the repository, if not provided the root is found using git."]
-        self.config['make'] = [cache['root'], "The location of the Makefile responsible for building the application."]
-        self.config['executable'] = ['', "The executable to utilize for generating application syntax."]
-        self.config['locations'] = [dict(), "The locations to parse for syntax."]
-        self.config['repo'] = ['', "The remote repository to create hyperlinks."]
-        self.config['links'] = [dict(), "The set of paths for generating input file and source code links to objects."]
-        self.config['docs_dir'] = [os.path.join('docs', 'content'), "The location of the markdown to be used for generating the site."]
-        self.config['slides'] = [False, "Enable the parsing for creating reveal.js slides."]
-        self.config['package'] = [False, "Enable the use of the MoosePackageParser."]
-        self.config['graphviz'] = ['/opt/moose/graphviz/bin', 'The location of graphviz executable for use with diagrams.']
-        self.config['pages'] = ['pages.yml', "The location of the pages file for auto link creation."]
+        self.config['executable']   = ['', "The executable to utilize for generating application syntax."]
+        self.config['locations']    = [dict(), "The locations to parse for syntax."]
+        self.config['repo']         = ['', "The remote repository to create hyperlinks."]
+        self.config['links']        = [dict(), "The set of paths for generating input file and source code links to objects."]
+        self.config['slides']       = [False, "Enable the parsing for creating reveal.js slides."]
+        self.config['package']      = [False, "Enable the use of the MoosePackageParser."]
+        self.config['graphviz']     = ['/opt/moose/graphviz/bin', 'The location of graphviz executable for use with diagrams.']
+        self.config['dot_ext']      = ['svg', "The graphviz/dot output file extension (default: svg)."]
+        self.config['install']      = ['', "The location to install system and object documentation."]
+        self.config['macro_files']  = ['', "List of paths to files that contain macros to be used in bibtex parsing."]
 
         # Construct the extension object
         super(MooseMarkdown, self).__init__(**kwargs)
+
+        # Create the absolute path to the executable
+        self.setConfig('executable', MooseDocs.abspath(self.getConfig('executable')))
+
+    def execute(self):
+        """
+        Execute the supplied MOOSE application and return the YAML.
+        """
+
+        exe = self.getConfig('executable')
+        if not (exe or os.path.exists(exe)):
+            log.critical('The executable does not exist: {}'.format(exe))
+            raise Exception('Critical Error')
+
+        else:
+            log.debug("Executing {} to extract syntax.".format(exe))
+            try:
+                raw = mooseutils.runExe(exe, '--yaml')
+                return mooseutils.MooseYaml(raw)
+            except:
+                log.critical('Failed to read YAML file, MOOSE and modules are likely not compiled correctly.')
+                raise Exception('Critical Error')
+
 
     def extendMarkdown(self, md, md_globals):
         """
         Builds the extensions for MOOSE flavored markdown.
         """
+        md.registerExtension(self)
 
-        # Strip description from config
+        # Create a config object
         config = self.getConfigs()
 
-        # Generate YAML data from application
-        global cache
-        exe = config['executable']
-        if exe != cache['exe']:
-            if not os.path.exists(exe):
-                log.error('The executable does not exist: {}'.format(exe))
-            else:
-                log.debug("Executing {} to extract syntax.".format(exe))
-                raw = utils.runExe(exe, '--yaml')
-                cache['exe'] = exe
-                cache['yaml'] = utils.MooseYaml(raw)
+        # Extract YAML
+        exe_yaml = self.execute()
 
+        # Generate YAML data from application
         # Populate the database for input file and children objects
-        if not cache['input_files']:
-            log.info('Building input and inheritance databases...')
-            for key, path in config['links'].iteritems():
-                cache['input_files'][key] =  MooseDocs.database.Database('.i', path, MooseDocs.database.items.InputFileItem, repo=config['repo'])
-                cache['child_objects'][key] = MooseDocs.database.Database('.h', path, MooseDocs.database.items.ChildClassItem, repo=config['repo'])
+        log.debug('Creating input file and source code use database.')
+        database = MooseDocs.MooseLinkDatabase(**config)
 
         # Populate the syntax
-        if not cache['syntax']:
-            for key, value in config['locations'].iteritems():
-                cache['syntax'][key] = MooseDocs.MooseApplicationSyntax(cache['yaml'], **value)
+        self.syntax = collections.OrderedDict()
+        for item in config['locations']:
+            key = item.keys()[0]
+            options = item.values()[0]
+            options.setdefault('group', key)
+            options.setdefault('name', key.replace('_', ' ').title())
+            options.setdefault('install', config['install'])
+            self.syntax[key] = MooseDocs.MooseApplicationSyntax(exe_yaml, **options)
 
-        # Populate the pages yaml
-        if not cache['pages']:
-            yml = MooseDocs.yaml_load(config['pages'])
-            for match in re.finditer(r':(.*?\.md)', yaml.dump(yml, default_flow_style=False)):
-                cache['pages'].append(match.group(1).strip())
+        # Replace the InlineTreeprocessor with the MooseInlineProcessor, this allows
+        # for an initialize() method to be called prior to the convert for re-setting state.
+        md.treeprocessors['inline'] = MooseInlineProcessor(markdown_instance=md, **config)
 
         # Preprocessors
-        md.preprocessors.add('moose_bibtex', MooseBibtex(markdown_instance=md, root=config['root']), '_end')
-        md.preprocessors.add('moose_auto_link', MooseMarkdownLinkPreprocessor(markdown_instance=md, pages=cache['pages']), '_begin')
+        md.preprocessors.add('moose_bibtex', MooseBibtex(markdown_instance=md, **config), '_end')
         if config['slides']:
             md.preprocessors.add('moose_slides', MooseSlidePreprocessor(markdown_instance=md), '_end')
 
         # Block processors
-        md.parser.blockprocessors.add('diagrams', MooseDiagram(md.parser, graphviz=config['graphviz']), '_begin')
-        md.parser.blockprocessors.add('slideshow', MooseCarousel(md.parser, root=config['root']), '_begin')
-        md.parser.blockprocessors.add('css', MooseCSS(md.parser, root=config['root']), '_begin')
+        md.parser.blockprocessors.add('diagrams', MooseDiagram(md.parser, **config), '_begin')
+        md.parser.blockprocessors.add('slider', MooseSlider(md.parser, **config), '_begin')
+        md.parser.blockprocessors.add('css', MooseCSS(md.parser, **config), '_begin')
 
         # Inline Patterns
-        object_markdown = MooseObjectSyntax(markdown_instance=md,
-                                            yaml=cache['yaml'],
-                                            syntax=cache['syntax'],
-                                            input_files=cache['input_files'],
-                                            child_objects=cache['child_objects'],
-                                            repo=config['repo'],
-                                            root=config['root'])
-        system_markdown = MooseSystemSyntax(markdown_instance=md,
-                                            yaml=cache['yaml'],
-                                            syntax=cache['syntax'])
+        params = MooseParameters(markdown_instance=md, syntax=self.syntax, **config)
+        md.inlinePatterns.add('moose_parameters', params, '_begin')
+
+        desc = MooseDescription(markdown_instance=md, syntax=self.syntax, **config)
+        md.inlinePatterns.add('moose_description', desc, '_begin')
+
+        object_markdown = MooseObjectSyntax(markdown_instance=md, syntax=self.syntax, database=database, **config)
         md.inlinePatterns.add('moose_object_syntax', object_markdown, '_begin')
+
+        system_markdown = MooseActionSyntax(markdown_instance=md, syntax=self.syntax, **config)
         md.inlinePatterns.add('moose_system_syntax', system_markdown, '_begin')
 
-        md.inlinePatterns.add('moose_input_block', MooseInputBlock(markdown_instance=md, repo=config['repo'], root=config['root']), '<image_link')
-        md.inlinePatterns.add('moose_cpp_method', MooseCppMethod(markdown_instance=md, make=config['make'], repo=config['repo'], root=config['root']), '<image_link')
-        md.inlinePatterns.add('moose_text', MooseTextFile(markdown_instance=md, repo=config['repo'], root=config['root']), '<image_link')
-        md.inlinePatterns.add('moose_image', MooseImageFile(markdown_instance=md, root=config['root']), '<image_link')
-        md.inlinePatterns.add('moose_build_status', MooseBuildStatus(markdown_instance=md), '_begin')
+        system_list = MooseActionList(markdown_instance=md, yaml=exe_yaml, syntax=self.syntax, **config)
+        md.inlinePatterns.add('moose_system_list', system_list, '_begin')
 
+        md.inlinePatterns.add('moose_input_block', MooseInputBlock(markdown_instance=md, **config), '_begin')
+        md.inlinePatterns.add('moose_cpp_method', MooseCppMethod(markdown_instance=md, **config), '_begin')
+        md.inlinePatterns.add('moose_text', MooseTextFile(markdown_instance=md, **config), '_begin')
+        md.inlinePatterns.add('moose_image', MooseImageFile(markdown_instance=md, **config), '_begin')
+        md.inlinePatterns.add('moose_figure', MooseFigure(markdown_instance=md, **config), '_begin')
+        md.inlinePatterns.add('moose_figure_reference', MooseFigureReference(markdown_instance=md, **config), '>moose_figure')
+        md.inlinePatterns.add('moose_equation_reference', MooseEquationReference(markdown_instance=md, **config), '<moose_figure_reference')
+        md.inlinePatterns.add('moose_build_status', MooseBuildStatus(markdown_instance=md, **config), '_begin')
         if config['package']:
-            md.inlinePatterns.add('moose_package_parser', MoosePackageParser(markdown_instance=md), '_end')
+            md.inlinePatterns.add('moose_package_parser', MoosePackageParser(markdown_instance=md, **config), '_end')
 
 def makeExtension(*args, **kwargs):
     return MooseMarkdown(*args, **kwargs)

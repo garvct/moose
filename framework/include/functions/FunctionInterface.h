@@ -20,10 +20,10 @@
 
 // Forward declarations
 class Function;
-class FEProblem;
+class FEProblemBase;
 class FunctionInterface;
 
-template<>
+template <>
 InputParameters validParams<FunctionInterface>();
 
 /**
@@ -59,13 +59,13 @@ public:
 
 private:
   /// Parameters of the object with this interface
-  const InputParameters &_fni_params;
+  const InputParameters & _fni_params;
 
-  /// Reference to FEProblem instance
-  FEProblem & _fni_feproblem;
+  /// Reference to FEProblemBase instance
+  FEProblemBase & _fni_feproblem;
 
   /// Thread ID
   THREAD_ID _fni_tid;
 };
 
-#endif //FUNCTIONINTERFACE_H
+#endif // FUNCTIONINTERFACE_H

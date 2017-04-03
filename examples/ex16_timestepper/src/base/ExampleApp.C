@@ -23,18 +23,15 @@
 #include "ExampleImplicitEuler.h"
 #include "ExampleMaterial.h"
 
-template<>
-InputParameters validParams<ExampleApp>()
+template <>
+InputParameters
+validParams<ExampleApp>()
 {
   InputParameters params = validParams<MooseApp>();
-
-  params.set<bool>("use_legacy_uo_initialization") = false;
-  params.set<bool>("use_legacy_uo_aux_computation") = false;
   return params;
 }
 
-ExampleApp::ExampleApp(InputParameters parameters) :
-    MooseApp(parameters)
+ExampleApp::ExampleApp(InputParameters parameters) : MooseApp(parameters)
 {
   srand(processor_id());
 
@@ -45,9 +42,7 @@ ExampleApp::ExampleApp(InputParameters parameters) :
   ExampleApp::associateSyntax(_syntax, _action_factory);
 }
 
-ExampleApp::~ExampleApp()
-{
-}
+ExampleApp::~ExampleApp() {}
 
 void
 ExampleApp::registerApps()

@@ -9,15 +9,14 @@
 
 #include "Kernel.h"
 
-//Forward Declarations
+// Forward Declarations
 class CoupledBEKinetic;
 
-template<>
+template <>
 InputParameters validParams<CoupledBEKinetic>();
 
 /**
  * Define the Kernel for a CoupledBEKinetic operator that looks like:
- *
  * delta (weight * v) / delta t.
  */
 class CoupledBEKinetic : public Kernel
@@ -26,15 +25,14 @@ public:
   CoupledBEKinetic(const InputParameters & parameters);
 
 protected:
-  virtual Real computeQpResidual();
-  virtual Real computeQpJacobian();
+  virtual Real computeQpResidual() override;
 
 private:
   /// Material property of porosity.
   const MaterialProperty<Real> & _porosity;
 
   /// Weight of the kinetic mineral concentration in the total primary species concentration.
-  std::vector<Real> _weight;
+  const std::vector<Real> _weight;
 
   /// Coupled kinetic mineral concentrations.
   std::vector<const VariableValue *> _vals;
@@ -43,4 +41,4 @@ private:
   std::vector<const VariableValue *> _vals_old;
 };
 
-#endif //COUPLEDBEKINETIC_H
+#endif // COUPLEDBEKINETIC_H

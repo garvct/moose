@@ -15,22 +15,17 @@
   zmax = .5
 []
 
-
-[Variables]
-  [./disp_x]
-  [../]
-  [./disp_y]
-  [../]
-  [./disp_z]
-  [../]
+[GlobalParams]
+  displacements = 'disp_x disp_y disp_z'
 []
 
-[Kernels]
-  [./TensorMechanics]
-    displacements = 'disp_x disp_y disp_z'
+[Modules/TensorMechanics/Master]
+  [./all]
+    strain = FINITE
+    add_variables = true
+    generate_output = 'stress_xx stress_yy stress_zz stress_xy stress_yz'
   [../]
 []
-
 
 [BCs]
   [./xdisp]
@@ -62,27 +57,7 @@
 []
 
 [AuxVariables]
-  [./stress_xx]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./stress_xy]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
   [./stress_xz]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./stress_yy]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./stress_yz]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./stress_zz]
     order = CONSTANT
     family = MONOMIAL
   [../]
@@ -133,46 +108,11 @@
 []
 
 [AuxKernels]
-  [./stress_xx]
-    type = RankTwoAux
-    rank_two_tensor = stress
-    variable = stress_xx
-    index_i = 0
-    index_j = 0
-  [../]
-  [./stress_xy]
-    type = RankTwoAux
-    rank_two_tensor = stress
-    variable = stress_xy
-    index_i = 0
-    index_j = 1
-  [../]
   [./stress_xz]
     type = RankTwoAux
     rank_two_tensor = stress
     variable = stress_xz
     index_i = 0
-    index_j = 2
-  [../]
-  [./stress_yy]
-    type = RankTwoAux
-    rank_two_tensor = stress
-    variable = stress_yy
-    index_i = 1
-    index_j = 1
-  [../]
-  [./stress_yz]
-    type = RankTwoAux
-    rank_two_tensor = stress
-    variable = stress_yz
-    index_i = 1
-    index_j = 2
-  [../]
-  [./stress_zz]
-    type = RankTwoAux
-    rank_two_tensor = stress
-    variable = stress_zz
-    index_i = 2
     index_j = 2
   [../]
   [./plastic_xx]
@@ -344,11 +284,6 @@
     fill_method = symmetric_isotropic
     C_ijkl = '121e3 80e3'
   [../]
-  [./strain]
-    type = ComputeFiniteStrain
-    block = 0
-    displacements = 'disp_x disp_y disp_z'
-  [../]
   [./mc]
     type = ComputeMultiPlasticityStress
     block = 0
@@ -361,9 +296,10 @@
 
 
 [Executioner]
+  type = Transient
+
   num_steps = 3
   dt = .25
-  type = Transient
 
   nl_rel_tol = 1e-6
   nl_max_its = 10
@@ -375,15 +311,14 @@
   petsc_options_value = 'lu'
 []
 
+[Preconditioning]
+  [./fdp]
+    type = FDP
+    full = true
+  [../]
+[]
 
 [Outputs]
   print_perf_log = false
   csv = true
-[]
-
-[Preconditioning]
- [./fdp]
-   type = FDP
-   full = true
- [../]
 []

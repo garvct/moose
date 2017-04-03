@@ -22,7 +22,7 @@
 // Forward declarations
 class MeshChangedInterface;
 
-template<>
+template <>
 InputParameters validParams<MeshChangedInterface>();
 
 /**
@@ -40,9 +40,8 @@ public:
   virtual void meshChanged() {}
 
 protected:
-
-  /// Reference to FEProblem instance
-  FEProblem & _mci_feproblem;
+  /// Reference to FEProblemBase instance
+  FEProblemBase & _mci_feproblem;
 };
 
 #endif /* MESHCHANGEDINTERFACE_H */

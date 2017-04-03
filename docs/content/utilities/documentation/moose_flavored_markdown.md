@@ -23,8 +23,13 @@ Inline math may be specified by enclosing the latex in single `$`: $y=a\cdot x +
 be enclosed in `$$`:
 
 $$
+\begin{equation}
+\label{eqn:test}
 x=\frac{1+y}{1+2z^2}.
+\end{equation}
 $$
+
+If the `\label{eqn:test}` was placed within the latex then it is possible to link to the equation using traditional latex syntax (`\eqref{eqn:test}`): Equation \eqref{eqn:test}.
 
 ### Admonition
 The [admonition](https://pythonhosted.org/Markdown/extensions/admonition.html) package enables for important and critical
@@ -63,9 +68,9 @@ Moose Flavored Markdown is capable of automatically creating links based on Mark
 especially useful when linking to generated pages. The syntax is identical to creating links as
 defined by [mkdocs], however the markdown path may be incomplete.
 
-* `[/Kernels/Diffusion.md]`: [/Kernels/Diffusion.md]
-* `[framework/systems/Kernels/Overview.md]`: [framework/systems/Kernels/Overview.md]
-* `[Diffusion](/Kernels/Diffusion)`: [Diffusion](/Kernels/Diffusion.md)
+* `[/Diffusion.md]`: [/Diffusion.md]
+* `[/Kernels/index..md]`: [systems/Kernels/index.md]
+* `[Diffusion](/Diffusion.md)`: [Diffusion](/Diffusion.md)
 
 ---
 
@@ -74,15 +79,19 @@ It is possible to include complete or partial C++ or input files from the local 
 markdown syntax to needed, including the application of special settings in the form of key, value pairings that are supplied within
 the custom markdown. A complete list of available settings is provided in the [Settings](MooseFlavoredMarkdown.md#optional-settings) of the included code.
 
+!!! note
+    When including code the path specified should be defined from the "root" directory, which by default is the
+    top level of the git repository (e.g., ~/projects/moose).
+
 ### Complete Files
 You can include complete files from the repository using the `!text` syntax. For example, the following
 includes the complete code as shown.
 
 ```markdown
-!text framework/src/kernels/Diffusion.C max-height=200px strip-extra-newlines=True overflow-y=scroll
+!text framework/src/kernels/Diffusion.C max-height=200px overflow-y=scroll
 ```
 
-!text framework/src/kernels/Diffusion.C max-height=200px strip-extra-newlines=True overflow-y=scroll
+!text framework/src/kernels/Diffusion.C max-height=200px overflow-y=scroll
 
 ### Single Line Match
 It is possible to show a single line of a file by a snippet that allows the line to be located within
@@ -114,7 +123,9 @@ the following limits the included code to the `computeQpResidual` method.
 !clang framework/src/kernels/Diffusion.C method=computeQpResidual
 ```
 
+<!--
 !clang framework/src/kernels/Diffusion.C method=computeQpResidual
+-->
 
 !!! warning "Warning"
     This method uses the clang parser directly, which can be slow. Thus, in general source code should be
@@ -142,7 +153,7 @@ The following options may be passed to control how the output is formatted.
 | label                | True    | Include a label with the filename before the code content block. |
 | overflow-y           | Scroll  | The action to take when the text overflow the html container (see [overflow-y](http://www.w3schools.com/cssref/css3_pr_overflow-y.asp)). |
 | max-height           | 500px   | The maximum height of the code window (see [max-height](http://www.w3schools.com/cssref/pr_dim_max-height.asp)). |
-| strip-extra-newlines | False   | Remove excessive newlines from the included code. |
+| strip-extra-newlines | True    | Remove excessive newlines from the included code. |
 
 ---
 
@@ -155,60 +166,114 @@ the syntax for the system or object being documented.
 * `!parameters /Kernels/Diffusion`: Inserts tables describing the available input parameters for an object or action.
 * `!inputfiles /Kernels/Diffusion`: Creates a list of input files that use the object or action.
 * `!childobjects /Kernels/Diffusion`: Create a list of objects that inherit from the supplied object.
-* `!devel /Kernels/Diffusion`: Creates links to the repository source code and Doxygen page for the object.
-* `!subobjects framework /Kernels`: Creates a table of objects within the supplied system, the second argument corresponds to the name of the "location" as specified in the configuration yaml file.
-* `!subsystems framework /Adaptivity`: Creates a table of sub-systems within the supplied system, , the second argument corresponds to the name of the "location" as specified in the configuration yaml file.
+* `!subobjects /Kernels`: Creates a table of objects within the supplied system.
+* `!subsystems /Adaptivity`: Creates a table of sub-systems within the supplied system.
 
 ---
 
+## Images
+!image docs/media/memory_logger-plot_multi.png width=30% padding-left=20px float=right caption=The [memory_logger](/memory_logger.md) is a utility that allows the user to track the memory use of a simulation.
+
+It is possible to include images  with more flexibility than standard markdown.
+
+The markdown keyword for MOOSE images is `!image` followed by the filename as shown below. This command, like most of the other
+special MOOSE markdown commands except arbitrary html attributes. Therefore, any keyword, value pairs (e.g., `width=50%`) are
+automatically applied to the `<figure>` tag of the image. For example, the following syntax was used to include the image on the right.
+
+```markdown
+!image docs/media/memory_logger-plot_multi.png width=30% padding-left=20px float=right caption=The [memory_logger](/memory_logger.md) is a utility that allows the user to track the memory use of a simulation.
+```
+
 ## Slideshows
-A sequence of images can be shown via a `carousel`. By default the images will auto cycle between images.
+A sequence of images can be shown via a `slider`.
+By default the images will auto cycle between images.
 
 A simple example:
 
 ```markdown
-!slideshow
+!slider
     intro.png
     other*.png
 ```
 
 This would create a slideshow with the first image as `intro.png` and the next images those that are matched by the wildcard `other*.png`.
 
-Valid options for the slideshow are the same as for the `bootstrap` [carousel](http://getbootstrap.com/javascript/#carousel):
+Valid options for the slider are standard CSS options (see example below).  Changing
+the interval between slides, transition time, and button layout is not possible
+at this time.
 
-| Option               | Default | Description |
-| -------------------- | ------- | ----------- |
-| interval             | 5000    | The amount of time delay between images, in milliseconds. |
-| pause                | hover   | If set to "hover" then the carousel will pause when the mouse is moved over it. |
-| wrap                 | true    | If true then the carousel will cycle continuously. |
-| keyboard             | true    | If true then the carousel will respond to keyboard events. |
+CSS options for background images can be applied to individual images as keyword
+pairs.  Additionally, captions can be added to each image and
+modified with appropriate CSS options.
 
-Additionally, a `caption` option can be set globally or for each image line. The global caption will be used if no caption is specified on the image
-line.
+Any option that appears after the image (but before "caption", if it exists)
+will be applied to the image.  Any option that
+appears after "caption" will be applied to the caption.
 
 A full slideshow example might be:
 ```markdown
-!slideshow caption=My caption with spaces interval=5000 pause=null wrap=false keyboard=false width=500px
-    memory_logger-plot_multi.png caption=Memory Logger plotting two results
-    memory_logger-darkmode.png caption=Memory Logger utilizing darkmode
-    memory_*.png
+!slider max-width=50% left=220px
+    docs/media/memory_logger-darkmode.png caption= Output of memory logging tool position=relative left=150px top=-150px
+    docs/media/testImage_tallNarrow.png background-color=#F8F8FF caption= This is a tall, thin image color=red font-size=200% width=200px height=100%
+    docs/media/github*.png background-color=gray
+    docs/media/memory_logger-plot_multi.png
 ```
 
-!slideshow caption=My caption with spaces interval=5000 pause=null wrap=false keyboard=false width=500px
-    memory_logger-plot_multi.png caption=Memory Logger plotting two results
-    memory_logger-darkmode.png caption=Memory Logger utilizing darkmode
-    memory_*.png
+!slider max-width=50% left=220px
+    docs/media/memory_logger-darkmode.png caption= Output of memory logging tool position=relative left=150px top=-150px
+    docs/media/testImage_tallNarrow.png background-color=#F8F8FF caption= This is a tall, thin image color=red font-size=200% width=200px height=100%
+    docs/media/github*.png background-color=gray
+    docs/media/memory_logger-plot_multi.png
 
 ---
 
-## Images
-You can include images in your documentation by use of the !image markdown syntax:
+## Figures
+When writing documentation it is customary to reference figures within text by number. To create a numbered figure use
+the `!figure` markdown syntax. This syntax operates nearly identically to the `!image` syntax with two exceptions.
 
-```markdown
-!image memory_logger-plot_multi.png width=300px align=right caption=figure 1
+!figure docs/media/memory_logger-plot_multi.png width=250px caption=The numbered prefix is automatically applied to the caption. id=fig:memory_logger
+
+First, the caption will automatically be prefixed with the figure number (e.g., Figure \ref{fig:dark_mode}). The
+numbering begins at one and is reset on each page. The prefix "Figure" can be modified by setting
+the "prefix" option.
+
+!figure docs/media/memory_logger-darkmode.png width=250px id=fig:dark_mode prefix=Fig. caption=The "prefix" setting changes the text that proceeds the number.
+
+Secondly, the "id" setting must be supplied. This defines the name to which the figure should be referred in the text.
+
+Figures can be referenced with latex style reference commands. For example, using `\ref{fig:memory_logger}` results in a
+reference to Figure \ref{fig:memory_logger}. If an invalid "id" is supplied the reference will display question marks: \ref{fig:invalid_id}.
+
+---
+
+## Flow Charts
+The ability to include diagrams using [GraphViz](http://www.graphviz.org/) using the [dot]() language is provided.
+Simply, include the "dot" syntax in the markdown, being sure to include the keywords ("graph" or
+"digraph") on the start of a new line.
+
+* The official page for the dot language is detailed here: [dot](http://www.graphviz.org/content/dot-language)
+* There are many sites that provide examples, for example:
+    * [https://en.wikipedia.org/wiki/DOT_(graph_description_language)](https://en.wikipedia.org/wiki/DOT_(graph_description_language))
+    * [http://graphs.grevian.org/example](http://graphs.grevian.org/example)
+* There also exists live, online tools for writing dot:
+    * [http://dreampuf.github.io/GraphvizOnline/](http://dreampuf.github.io/GraphvizOnline/)
+    * [http://www.webgraphviz.com/](http://www.webgraphviz.com/)
+
+For example, the following dot syntax placed directly in the markdown produces the following graph.
+```text
+graph {
+    bgcolor="#ffffff00" // transparent background
+    a -- b -- c;
+    b -- d;
+}
 ```
 
-!image memory_logger-plot_multi.png width=300px align=right caption=figure 1
+graph {
+    bgcolor="#ffffff00" // transparent background
+    a -- b -- c;
+    b -- d;
+}
+
 
 ---
 
@@ -258,35 +323,6 @@ An empty new line, designates the end of the css block.
 !css font-size=smaller margin-left=70% color=red text-shadow=1px 1px 1px rgba(0,0,0,.4)
 Another paragraph modified by CSS.
 
----
-
-## Flow Charts
-The ability to include diagrams using [GraphViz](http://www.graphviz.org/) using the [dot]() language is provided.
-Simply, include the "dot" syntax in the markdown, being sure to include the keywords ("graph" or
-"digraph") on the start of a new line.
-
-* The official page for the dot language is detailed here: [dot](http://www.graphviz.org/content/dot-language)
-* There are many sites that provide examples, for example:
-    * [https://en.wikipedia.org/wiki/DOT_(graph_description_language)](https://en.wikipedia.org/wiki/DOT_(graph_description_language))
-    * [http://graphs.grevian.org/example](http://graphs.grevian.org/example)
-* There also exists live, online tools for writing dot:
-    * [http://dreampuf.github.io/GraphvizOnline/](http://dreampuf.github.io/GraphvizOnline/)
-    * [http://www.webgraphviz.com/](http://www.webgraphviz.com/)
-
-For example, the following dot syntax placed directly in the markdown produces the following graph.
-```text
-graph {
-    bgcolor="#ffffff00" // transparent background
-    a -- b -- c;
-    b -- d;
-}
-```
-
-graph {
-    bgcolor="#ffffff00" // transparent background
-    a -- b -- c;
-    b -- d;
-}
 
 ---
 
@@ -317,7 +353,7 @@ It is possible to include citations using latex commands, the following commands
 The bibliography style may be set within a page using the latex command
 `\bibliographystyle{unsrt}`. Three styles are currently available: 'unsrt', 'plain', 'alpha', and 'unsrtalpha'.
 
-The references are displayed by using the latex `\bibliography{docs/moose.bib}` command. This command accepts a comma separated list of bibtex files (*.bib) to use to build citations and references. The files specified in this list must be given as a relative path to the root directory (e.g., `~/projects/moose`) of the repository.
+The references are displayed by using the latex `\bibliography{docs/bib/moose.bib}` command. This command accepts a comma separated list of bibtex files (*.bib) to use to build citations and references. The files specified in this list must be given as a relative path to the root directory (e.g., `~/projects/moose`) of the repository.
 
 \bibliographystyle{unsrt}
-\bibliography{docs/moose.bib}
+\bibliography{docs/bib/moose.bib}

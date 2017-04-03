@@ -24,34 +24,51 @@
 // libMesh includes
 #include "libmesh/string_to_enum.h"
 
-template<>
-InputParameters validParams<TableOutput>()
+template <>
+InputParameters
+validParams<TableOutput>()
 {
   // Fit mode selection Enum
   MooseEnum pps_fit_mode(FormattedTable::getWidthModes());
 
   // Base class parameters
-  InputParameters params = validParams<AdvancedOutput<FileOutput> >();
-  params += AdvancedOutput<FileOutput>::enableOutputTypes("postprocessor scalar vector_postprocessor");
+  InputParameters params = validParams<AdvancedOutput<FileOutput>>();
+  params +=
+      AdvancedOutput<FileOutput>::enableOutputTypes("postprocessor scalar vector_postprocessor");
 
   // Option for writing vector_postprocessor time file
-  params.addParam<bool>("time_data", false, "When true and VecptorPostprocessor data exists, write a csv file containing the timestep and time information.");
+  params.addParam<bool>("time_data",
+                        false,
+                        "When true and VecptorPostprocessor data exists, write "
+                        "a csv file containing the timestep and time "
+                        "information.");
 
   // Add option for appending file on restart
   params.addParam<bool>("append_restart", false, "Append existing file on restart");
 
-  params.addParam<bool>("time_column", true, "Whether or not the 'time' column should be written for Postprocessor CSV files");
+  params.addParam<bool>(
+      "time_column",
+      true,
+      "Whether or not the 'time' column should be written for Postprocessor CSV files");
 
   return params;
 }
 
-TableOutput::TableOutput(const InputParameters & parameters) :
-    AdvancedOutput<FileOutput>(parameters),
+TableOutput::TableOutput(const InputParameters & parameters)
+  : AdvancedOutput<FileOutput>(parameters),
     _tables_restartable(getParam<bool>("append_restart")),
-    _postprocessor_table(_tables_restartable ? declareRestartableData<FormattedTable>("postprocessor_table") : declareRecoverableData<FormattedTable>("postprocessor_table")),
-    _vector_postprocessor_time_tables(_tables_restartable ? declareRestartableData<std::map<std::string, FormattedTable> >("vector_postprocessor_time_table") : declareRecoverableData<std::map<std::string, FormattedTable> >("vector_postprocessor_time_table")),
-    _scalar_table(_tables_restartable ? declareRestartableData<FormattedTable>("scalar_table") : declareRecoverableData<FormattedTable>("scalar_table")),
-    _all_data_table(_tables_restartable ? declareRestartableData<FormattedTable>("all_data_table") : declareRecoverableData<FormattedTable>("all_data_table")),
+    _postprocessor_table(_tables_restartable
+                             ? declareRestartableData<FormattedTable>("postprocessor_table")
+                             : declareRecoverableData<FormattedTable>("postprocessor_table")),
+    _vector_postprocessor_time_tables(
+        _tables_restartable ? declareRestartableData<std::map<std::string, FormattedTable>>(
+                                  "vector_postprocessor_time_table")
+                            : declareRecoverableData<std::map<std::string, FormattedTable>>(
+                                  "vector_postprocessor_time_table")),
+    _scalar_table(_tables_restartable ? declareRestartableData<FormattedTable>("scalar_table")
+                                      : declareRecoverableData<FormattedTable>("scalar_table")),
+    _all_data_table(_tables_restartable ? declareRestartableData<FormattedTable>("all_data_table")
+                                        : declareRecoverableData<FormattedTable>("all_data_table")),
     _time_data(getParam<bool>("time_data")),
     _time_column(getParam<bool>("time_column"))
 {
@@ -82,28 +99,36 @@ TableOutput::outputVectorPostprocessors()
   // List of names of the postprocessors to output
   const std::set<std::string> & out = getVectorPostprocessorOutput();
 
-  // Loop through the postprocessor names and extract the values from the VectorPostprocessorData storage
+  // Loop through the postprocessor names and extract the values from the VectorPostprocessorData
+  // storage
   for (const auto & vpp_name : out)
   {
-    const std::map<std::string, VectorPostprocessorValue*> & vectors = _problem_ptr->getVectorPostprocessorVectors(vpp_name);
-
-    FormattedTable & table = _vector_postprocessor_tables[vpp_name];
-
-    table.clear();
-    table.outputTimeColumn(false);
-
-    for (const auto & vec_it : vectors)
+    if (_problem_ptr->vectorPostprocessorHasVectors(vpp_name))
     {
-      VectorPostprocessorValue vector = *(vec_it.second);
+      const auto & vectors = _problem_ptr->getVectorPostprocessorVectors(vpp_name);
 
-      for (unsigned int i=0; i<vector.size(); i++)
-        table.addData(vec_it.first, vector[i], i);
-    }
+      auto table_it = _vector_postprocessor_tables.lower_bound(vpp_name);
+      if (table_it == _vector_postprocessor_tables.end() || table_it->first != vpp_name)
+        table_it = _vector_postprocessor_tables.emplace_hint(table_it, vpp_name, FormattedTable());
 
-    if (_time_data)
-    {
-      FormattedTable & t_table = _vector_postprocessor_time_tables[vpp_name];
-      t_table.addData("timestep", _t_step, _time);
+      FormattedTable & table = table_it->second;
+
+      table.clear();
+      table.outputTimeColumn(false);
+
+      for (const auto & vec_it : vectors)
+      {
+        const auto & vector = *vec_it.second.current;
+
+        for (auto i = beginIndex(vector); i < vector.size(); ++i)
+          table.addData(vec_it.first, vector[i], i);
+      }
+
+      if (_time_data)
+      {
+        FormattedTable & t_table = _vector_postprocessor_time_tables[vpp_name];
+        t_table.addData("timestep", _t_step, _time);
+      }
     }
   }
 }

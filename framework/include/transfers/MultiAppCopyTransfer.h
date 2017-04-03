@@ -21,14 +21,13 @@
 class MultiAppCopyTransfer;
 class MooseVariable;
 
-template<>
+template <>
 InputParameters validParams<MultiAppCopyTransfer>();
 
 /**
  * Copy the value to the target domain from the nearest node in the source domain.
  */
-class MultiAppCopyTransfer :
-  public MultiAppTransfer
+class MultiAppCopyTransfer : public MultiAppTransfer
 {
 public:
   MultiAppCopyTransfer(const InputParameters & parameters);
@@ -44,17 +43,18 @@ public:
   virtual void execute() override;
 
 protected:
-
   /**
    * Performs the transfer of a variable between two problems.
    */
-  void transfer(FEProblem & to_problem, FEProblem & from_problem);
+  void transfer(FEProblemBase & to_problem, FEProblemBase & from_problem);
 
   /**
    * Performs the transfer of values between a node or element.
    */
-  void transferDofObject(libMesh::DofObject * to_object, libMesh::DofObject * from_object,
-                         MooseVariable & to_var, MooseVariable & from_var);
+  void transferDofObject(libMesh::DofObject * to_object,
+                         libMesh::DofObject * from_object,
+                         MooseVariable & to_var,
+                         MooseVariable & from_var);
 
   /// The name of the variable to transfer to
   const VariableName & _to_var_name;

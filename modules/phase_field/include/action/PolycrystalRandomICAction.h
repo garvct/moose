@@ -13,7 +13,7 @@
 /**
  * Automatically generates all variables to model a polycrystal with op_num orderparameters
  */
-class PolycrystalRandomICAction: public Action
+class PolycrystalRandomICAction : public Action
 {
 public:
   PolycrystalRandomICAction(const InputParameters & params);
@@ -21,15 +21,12 @@ public:
   virtual void act();
 
 private:
-  static const Real _abs_zero_tol;
-
-  unsigned int _op_num;
-  //unsigned int _grain_num;
-  std::string _var_name_base;
-  MooseEnum _random_type;
+  const unsigned int _op_num;
+  const std::string _var_name_base;
+  const MooseEnum _random_type;
 };
 
-template<>
+template <>
 InputParameters validParams<PolycrystalRandomICAction>();
 
-#endif //POLYCRYSTALRANDOMICACTION_H
+#endif // POLYCRYSTALRANDOMICACTION_H

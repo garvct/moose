@@ -28,7 +28,7 @@ namespace libMesh
 class Nemesis_IO;
 }
 
-template<>
+template <>
 InputParameters validParams<Nemesis>();
 
 /**
@@ -37,7 +37,6 @@ InputParameters validParams<Nemesis>();
 class Nemesis : public AdvancedOutput<OversampleOutput>
 {
 public:
-
   /**
    * Class constructor
    */
@@ -64,9 +63,7 @@ public:
    */
   virtual void meshChanged() override;
 
-
 protected:
-
   /**
    * Writes postprocessor values to global output parameters
    */
@@ -85,7 +82,7 @@ protected:
   virtual std::string filename() override;
 
   /// Pointer to the libMesh::NemesisII_IO object that performs the actual data output
-  Nemesis_IO * _nemesis_io_ptr;
+  std::unique_ptr<Nemesis_IO> _nemesis_io_ptr;
 
   /// Storage for scalar values (postprocessors and scalar AuxVariables)
   std::vector<Real> _global_values;
@@ -97,13 +94,11 @@ protected:
   unsigned int _file_num;
 
 private:
-
   /// Count of outputs per exodus file
   unsigned int _nemesis_num;
 
   /// Flag if the output has been initialized
   bool _nemesis_initialized;
-
 };
 
 #endif /* NEMESIS_H */

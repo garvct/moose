@@ -27,9 +27,9 @@
 class SamplerBase;
 class VectorPostprocessor;
 class VectorPostprocessorData;
-class FEProblem;
+class FEProblemBase;
 
-template<>
+template <>
 InputParameters validParams<VectorPostprocessor>();
 
 /**
@@ -61,10 +61,15 @@ protected:
   /// The name of the VectorPostprocessor
   std::string _vpp_name;
 
-  /// Pointer to FEProblem
-  FEProblem * _vpp_fe_problem;
+  /// Pointer to FEProblemBase
+  FEProblemBase * _vpp_fe_problem;
 
   friend class SamplerBase;
+
+private:
+  THREAD_ID _vpp_tid;
+
+  std::map<std::string, VectorPostprocessorValue> _thread_local_vectors;
 };
 
 #endif

@@ -15,22 +15,22 @@
 #ifndef MOOSEUTILSTEST_H
 #define MOOSEUTILSTEST_H
 
-//CPPUnit includes
+// CPPUnit includes
 #include "GuardedHelperMacros.h"
 
 // Forward declarations
 class MooseMesh;
-class FEProblem;
+class FEProblemBase;
 class Factory;
 class MooseApp;
 
 class MooseUtilsTest : public CppUnit::TestFixture
 {
 
-  CPPUNIT_TEST_SUITE( MooseUtilsTest );
+  CPPUNIT_TEST_SUITE(MooseUtilsTest);
 
-  CPPUNIT_TEST( camelCaseToUnderscore );
-  CPPUNIT_TEST( underscoreToCamelCase );
+  CPPUNIT_TEST(camelCaseToUnderscore);
+  CPPUNIT_TEST(underscoreToCamelCase);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -39,4 +39,4 @@ public:
   void underscoreToCamelCase();
 };
 
-#endif //MOOSEUTILSTEST_H
+#endif // MOOSEUTILSTEST_H

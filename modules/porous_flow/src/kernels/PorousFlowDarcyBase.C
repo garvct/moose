@@ -6,36 +6,50 @@
 /****************************************************************/
 
 #include "PorousFlowDarcyBase.h"
+
 #include "Assembly.h"
+#include "MooseMesh.h"
+#include "SystemBase.h"
+
 // libmesh includes
 #include "libmesh/quadrature.h"
 
-#include "MooseMesh.h"
-
-template<>
-InputParameters validParams<PorousFlowDarcyBase>()
+template <>
+InputParameters
+validParams<PorousFlowDarcyBase>()
 {
   InputParameters params = validParams<Kernel>();
-  params.addRequiredParam<RealVectorValue>("gravity", "Gravitational acceleration vector downwards (m/s^2)");
-  params.addRequiredParam<UserObjectName>("PorousFlowDictator", "The UserObject that holds the list of PorousFlow variable names");
+  params.addRequiredParam<RealVectorValue>("gravity",
+                                           "Gravitational acceleration vector downwards (m/s^2)");
+  params.addRequiredParam<UserObjectName>(
+      "PorousFlowDictator", "The UserObject that holds the list of PorousFlow variable names");
   params.addClassDescription("Fully-upwinded advective Darcy flux");
   return params;
 }
 
-PorousFlowDarcyBase::PorousFlowDarcyBase(const InputParameters & parameters) :
-    Kernel(parameters),
+PorousFlowDarcyBase::PorousFlowDarcyBase(const InputParameters & parameters)
+  : Kernel(parameters),
     _permeability(getMaterialProperty<RealTensorValue>("PorousFlow_permeability_qp")),
-    _dpermeability_dvar(getMaterialProperty<std::vector<RealTensorValue> >("dPorousFlow_permeability_qp_dvar")),
-    _fluid_density_node(getMaterialProperty<std::vector<Real> >("PorousFlow_fluid_phase_density")),
-    _dfluid_density_node_dvar(getMaterialProperty<std::vector<std::vector<Real> > >("dPorousFlow_fluid_phase_density_dvar")),
-    _fluid_density_qp(getMaterialProperty<std::vector<Real> >("PorousFlow_fluid_phase_density_qp")),
-    _dfluid_density_qp_dvar(getMaterialProperty<std::vector<std::vector<Real> > >("dPorousFlow_fluid_phase_density_qp_dvar")),
-    _fluid_viscosity(getMaterialProperty<std::vector<Real> >("PorousFlow_viscosity")),
-    _dfluid_viscosity_dvar(getMaterialProperty<std::vector<std::vector<Real> > >("dPorousFlow_viscosity_dvar")),
-    _pp(getMaterialProperty<std::vector<Real> >("PorousFlow_porepressure_nodal")),
-    _grad_p(getMaterialProperty<std::vector<RealGradient> >("PorousFlow_grad_porepressure_qp")),
-    _dgrad_p_dgrad_var(getMaterialProperty<std::vector<std::vector<Real> > >("dPorousFlow_grad_porepressure_qp_dgradvar")),
-    _dgrad_p_dvar(getMaterialProperty<std::vector<std::vector<RealGradient> > >("dPorousFlow_grad_porepressure_qp_dvar")),
+    _dpermeability_dvar(
+        getMaterialProperty<std::vector<RealTensorValue>>("dPorousFlow_permeability_qp_dvar")),
+    _dpermeability_dgradvar(getMaterialProperty<std::vector<std::vector<RealTensorValue>>>(
+        "dPorousFlow_permeability_qp_dgradvar")),
+    _fluid_density_node(
+        getMaterialProperty<std::vector<Real>>("PorousFlow_fluid_phase_density_nodal")),
+    _dfluid_density_node_dvar(getMaterialProperty<std::vector<std::vector<Real>>>(
+        "dPorousFlow_fluid_phase_density_nodal_dvar")),
+    _fluid_density_qp(getMaterialProperty<std::vector<Real>>("PorousFlow_fluid_phase_density_qp")),
+    _dfluid_density_qp_dvar(getMaterialProperty<std::vector<std::vector<Real>>>(
+        "dPorousFlow_fluid_phase_density_qp_dvar")),
+    _fluid_viscosity(getMaterialProperty<std::vector<Real>>("PorousFlow_viscosity_nodal")),
+    _dfluid_viscosity_dvar(
+        getMaterialProperty<std::vector<std::vector<Real>>>("dPorousFlow_viscosity_nodal_dvar")),
+    _pp(getMaterialProperty<std::vector<Real>>("PorousFlow_porepressure_nodal")),
+    _grad_p(getMaterialProperty<std::vector<RealGradient>>("PorousFlow_grad_porepressure_qp")),
+    _dgrad_p_dgrad_var(getMaterialProperty<std::vector<std::vector<Real>>>(
+        "dPorousFlow_grad_porepressure_qp_dgradvar")),
+    _dgrad_p_dvar(getMaterialProperty<std::vector<std::vector<RealGradient>>>(
+        "dPorousFlow_grad_porepressure_qp_dvar")),
     _porousflow_dictator(getUserObject<PorousFlowDictator>("PorousFlowDictator")),
     _num_phases(_porousflow_dictator.numPhases()),
     _gravity(getParam<RealVectorValue>("gravity"))
@@ -43,19 +57,28 @@ PorousFlowDarcyBase::PorousFlowDarcyBase(const InputParameters & parameters) :
 }
 
 Real
-PorousFlowDarcyBase::darcyQp(unsigned int ph)
+PorousFlowDarcyBase::darcyQp(unsigned int ph) const
 {
-  return _grad_test[_i][_qp] * (_permeability[_qp] * (_grad_p[_qp][ph] - _fluid_density_qp[_qp][ph] * _gravity));
+  return _grad_test[_i][_qp] *
+         (_permeability[_qp] * (_grad_p[_qp][ph] - _fluid_density_qp[_qp][ph] * _gravity));
 }
 
 Real
-PorousFlowDarcyBase::darcyQpJacobian(unsigned int jvar, unsigned int ph)
+PorousFlowDarcyBase::darcyQpJacobian(unsigned int jvar, unsigned int ph) const
 {
   if (_porousflow_dictator.notPorousFlowVariable(jvar))
     return 0.0;
 
   const unsigned int pvar = _porousflow_dictator.porousFlowVariableNum(jvar);
-  return _grad_test[_i][_qp] * (_dpermeability_dvar[_qp][pvar] * (_grad_p[_qp][ph] - _fluid_density_qp[_qp][ph]*_gravity) + _permeability[_qp] * (_grad_phi[_j][_qp] * _dgrad_p_dgrad_var[_qp][ph][pvar] - _phi[_j][_qp] * _dfluid_density_qp_dvar[_qp][ph][pvar] * _gravity) + _permeability[_qp] * (_dgrad_p_dvar[_qp][ph][pvar] * _phi[_j][_qp]) );
+  RealVectorValue deriv = _dpermeability_dvar[_qp][pvar] * _phi[_j][_qp] *
+                          (_grad_p[_qp][ph] - _fluid_density_qp[_qp][ph] * _gravity);
+  for (unsigned i = 0; i < LIBMESH_DIM; ++i)
+    deriv += _dpermeability_dgradvar[_qp][i][pvar] * _grad_phi[_j][_qp](i) *
+             (_grad_p[_qp][ph] - _fluid_density_qp[_qp][ph] * _gravity);
+  deriv += _permeability[_qp] * (_grad_phi[_j][_qp] * _dgrad_p_dgrad_var[_qp][ph][pvar] -
+                                 _phi[_j][_qp] * _dfluid_density_qp_dvar[_qp][ph][pvar] * _gravity);
+  deriv += _permeability[_qp] * (_dgrad_p_dvar[_qp][ph][pvar] * _phi[_j][_qp]);
+  return _grad_test[_i][_qp] * deriv;
 }
 
 Real
@@ -74,23 +97,24 @@ PorousFlowDarcyBase::computeResidual()
 void
 PorousFlowDarcyBase::computeJacobian()
 {
-   upwind(CALCULATE_JACOBIAN, _var.number());
+  upwind(CALCULATE_JACOBIAN, _var.number());
 }
 
 void
 PorousFlowDarcyBase::computeOffDiagJacobian(unsigned int jvar)
 {
-   upwind(CALCULATE_JACOBIAN, jvar);
+  upwind(CALCULATE_JACOBIAN, jvar);
 }
 
 void
 PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
 {
   if ((res_or_jac == CALCULATE_JACOBIAN) && _porousflow_dictator.notPorousFlowVariable(jvar))
-      return;
+    return;
 
   /// The PorousFlow variable index corresponding to the variable number jvar
-  const unsigned int pvar = ((res_or_jac == CALCULATE_JACOBIAN) ? _porousflow_dictator.porousFlowVariableNum(jvar) : 0);
+  const unsigned int pvar =
+      ((res_or_jac == CALCULATE_JACOBIAN) ? _porousflow_dictator.porousFlowVariableNum(jvar) : 0);
 
   /// The number of nodes in the element
   const unsigned int num_nodes = _test.size();
@@ -98,7 +122,7 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
   /// Compute the residual and jacobian without the mobility terms. Even if we are computing the Jacobian
   /// we still need this in order to see which nodes are upwind and which are downwind.
 
-  std::vector<std::vector<Real> > component_re(num_nodes);
+  std::vector<std::vector<Real>> component_re(num_nodes);
   for (_i = 0; _i < num_nodes; ++_i)
   {
     component_re[_i].assign(_num_phases, 0.0);
@@ -108,10 +132,12 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
   }
 
   DenseMatrix<Number> & ke = _assembly.jacobianBlock(_var.number(), jvar);
-  if ((ke.n() == 0) && (res_or_jac == CALCULATE_JACOBIAN)) // this removes a problem encountered in the initial timestep when use_displaced_mesh=true
+  if ((ke.n() == 0) && (res_or_jac == CALCULATE_JACOBIAN)) // this removes a problem encountered in
+                                                           // the initial timestep when
+                                                           // use_displaced_mesh=true
     return;
 
-  std::vector<std::vector<std::vector<Real> > > component_ke;
+  std::vector<std::vector<std::vector<Real>>> component_ke;
   if (res_or_jac == CALCULATE_JACOBIAN)
   {
     component_ke.resize(ke.m());
@@ -129,10 +155,12 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
   }
 
   /**
-   * Now perform the upwinding by multiplying the residuals at the upstream nodes by their mobilities.
+   * Now perform the upwinding by multiplying the residuals at the upstream nodes by their
+   *mobilities.
    * Mobility is different for each phase, and in each situation:
    *   mobility = density / viscosity    for single-component Darcy flow
-   *   mobility = mass_fraction * density * relative_perm / viscosity    for multi-component, multiphase flow
+   *   mobility = mass_fraction * density * relative_perm / viscosity    for multi-component,
+   *multiphase flow
    *   mobility = enthalpy * density * relative_perm / viscosity    for heat convection
    *
    * The residual for the kernel is the sum over Darcy fluxes for each phase.
@@ -147,9 +175,11 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
    *
    * This leads to the definition of upwinding:
    *
-   * If _component_re(i)[ph] is positive then we use mobility_i.  That is we use the upwind value of mobility.
+   * If _component_re(i)[ph] is positive then we use mobility_i.  That is we use the upwind value of
+   *mobility.
    *
-   * The final subtle thing is we must also conserve fluid mass: the total component mass flowing out of node i
+   * The final subtle thing is we must also conserve fluid mass: the total component mass flowing
+   *out of node i
    * must be the sum of the masses flowing into the other nodes.
   **/
 
@@ -170,7 +200,8 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
     // this is a dirty way of getting around precision loss problems
     // and problems at steadystate where upwinding oscillates from
     // node-to-node causing nonconvergence.
-    // The residual = int_{ele}*grad_test*k*(gradP - rho*g) = L^(d-1)*k*(gradP - rho*g), where d is dimension
+    // The residual = int_{ele}*grad_test*k*(gradP - rho*g) = L^(d-1)*k*(gradP - rho*g), where d is
+    // dimension
     // I assume that if one nodal P changes by P*1E-8 then this is
     // a "negligible" change.  The residual will change by L^(d-2)*k*P*1E-8
     // Similarly if rho*g changes by rho*g*1E-8 then this is a "negligible change"
@@ -185,7 +216,7 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
     gravnorm *= _gravity * _gravity;
     const Real cutoff = 1.0E-8 * knorm * (std::sqrt(pnorm) * l2md + std::sqrt(gravnorm) * l1md);
     bool reached_steady = true;
-    for (unsigned int nodenum = 0; nodenum < num_nodes ; ++nodenum)
+    for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
     {
       if (component_re[nodenum][ph] >= cutoff)
       {
@@ -208,7 +239,7 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
       dtotal_mass_out.resize(num_nodes);
       dtotal_in.resize(num_nodes);
 
-      for (unsigned int n = 0; n < num_nodes ; ++n)
+      for (unsigned int n = 0; n < num_nodes; ++n)
       {
         dtotal_mass_out[n] = 0.0;
         dtotal_in[n] = 0.0;
@@ -217,7 +248,7 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
 
     /// Perform the upwinding using the mobility
     std::vector<bool> upwind_node(num_nodes);
-    for (unsigned int n = 0; n < num_nodes ; ++n)
+    for (unsigned int n = 0; n < num_nodes; ++n)
     {
       if (component_re[n][ph] >= cutoff || reached_steady) // upstream node
       {
@@ -232,7 +263,16 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
           for (_j = 0; _j < _phi.size(); _j++)
             component_ke[n][_j][ph] *= mob;
 
-          component_ke[n][n][ph] += dmob * component_re[n][ph];
+          if (_test.size() == _phi.size())
+            /* mobility at node=n depends only on the variables at node=n, by construction.  For
+             * linear-lagrange variables, this means that Jacobian entries involving the derivative
+             * of mobility will only be nonzero for derivatives wrt variables at node=n.  Hence the
+             * [n][n] in the line below.  However, for other variable types (eg constant monomials)
+             * I cannot tell what variable number contributes to the derivative.  However, in all
+             * cases I can possibly imagine, the derivative is zero anyway, since in the full
+             * upwinding scheme, mobility shouldn't depend on these other sorts of variables.
+             */
+            component_ke[n][n][ph] += dmob * component_re[n][ph];
 
           for (_j = 0; _j < _phi.size(); _j++)
             dtotal_mass_out[_j] += component_ke[n][_j][ph];
@@ -261,7 +301,9 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
             for (_j = 0; _j < _phi.size(); _j++)
             {
               component_ke[n][_j][ph] *= total_mass_out / total_in;
-              component_ke[n][_j][ph] += component_re[n][ph] * (dtotal_mass_out[_j] / total_in - dtotal_in[_j] * total_mass_out / total_in / total_in);
+              component_ke[n][_j][ph] +=
+                  component_re[n][ph] * (dtotal_mass_out[_j] / total_in -
+                                         dtotal_in[_j] * total_mass_out / total_in / total_in);
             }
           component_re[n][ph] *= total_mass_out / total_in;
         }
@@ -307,7 +349,7 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
       unsigned int rows = ke.m();
       DenseVector<Number> diag(rows);
       for (unsigned int i = 0; i < rows; i++)
-        diag(i) = _local_ke(i,i);
+        diag(i) = _local_ke(i, i);
 
       Threads::spin_mutex::scoped_lock lock(Threads::spin_mtx);
       for (unsigned int i = 0; i < _diag_save_in.size(); i++)
@@ -316,15 +358,17 @@ PorousFlowDarcyBase::upwind(JacRes res_or_jac, unsigned int jvar)
   }
 }
 
-Real PorousFlowDarcyBase::mobility(unsigned nodenum, unsigned phase)
+Real
+PorousFlowDarcyBase::mobility(unsigned nodenum, unsigned phase) const
 {
   return _fluid_density_node[nodenum][phase] / _fluid_viscosity[nodenum][phase];
 }
 
-Real PorousFlowDarcyBase::dmobility(unsigned nodenum, unsigned phase, unsigned pvar)
+Real
+PorousFlowDarcyBase::dmobility(unsigned nodenum, unsigned phase, unsigned pvar) const
 {
   Real dm = _dfluid_density_node_dvar[nodenum][phase][pvar] / _fluid_viscosity[nodenum][phase];
-  dm -= _fluid_density_node[nodenum][phase] * _dfluid_viscosity_dvar[nodenum][phase][pvar] / std::pow(_fluid_viscosity[nodenum][phase], 2);
+  dm -= _fluid_density_node[nodenum][phase] * _dfluid_viscosity_dvar[nodenum][phase][pvar] /
+        std::pow(_fluid_viscosity[nodenum][phase], 2);
   return dm;
 }
-

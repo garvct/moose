@@ -11,7 +11,8 @@
 
 /**
  * ComputePlaneSmallStrain defines small strains under generalized
- * plane strain assumptions, where the out of plane strain can be nonzero.
+ * plane strain and plane stress assumptions, where the out of plane strain
+ * can be uniformly or non-uniformly zero or nonzero.
  */
 class ComputePlaneSmallStrain : public Compute2DSmallStrain
 {
@@ -22,7 +23,11 @@ protected:
   virtual Real computeStrainZZ();
 
 private:
-  const VariableValue & _scalar_strain_zz;
+  const bool _scalar_out_of_plane_strain_coupled;
+  const VariableValue & _scalar_out_of_plane_strain;
+
+  const bool _out_of_plane_strain_coupled;
+  const VariableValue & _out_of_plane_strain;
 };
 
-#endif //COMPUTEPLANESMALLSTRAIN_H
+#endif // COMPUTEPLANESMALLSTRAIN_H

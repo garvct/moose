@@ -12,7 +12,7 @@
 
 class StiffenedGasFluidProperties;
 
-template<>
+template <>
 InputParameters validParams<StiffenedGasFluidProperties>();
 
 /**
@@ -37,13 +37,21 @@ public:
 
   /// Compute internal energy and density from specific entropy and pressure
   virtual void rho_e_ps(Real pressure, Real entropy, Real & rho, Real & e) const;
-  virtual void rho_e_dps(Real pressure, Real entropy, Real & rho, Real & drho_dp, Real & drho_ds, Real & e, Real & de_dp, Real & de_ds) const;
+  virtual void rho_e_dps(Real pressure,
+                         Real entropy,
+                         Real & rho,
+                         Real & drho_dp,
+                         Real & drho_ds,
+                         Real & e,
+                         Real & de_dp,
+                         Real & de_ds) const;
 
   virtual Real beta(Real p, Real T) const;
 
   virtual void rho_e(Real pressure, Real temperature, Real & rho, Real & e) const;
   virtual Real rho(Real pressure, Real temperature) const;
-  virtual void rho_dpT(Real pressure, Real temperature, Real & rho, Real & drho_dp, Real & drho_dT) const;
+  virtual void
+  rho_dpT(Real pressure, Real temperature, Real & rho, Real & drho_dp, Real & drho_dT) const;
   virtual void e_dpT(Real pressure, Real temperature, Real & e, Real & de_dp, Real & de_dT) const;
 
   virtual Real e(Real pressure, Real rho) const;
@@ -51,6 +59,9 @@ public:
 
   virtual Real h(Real pressure, Real temperature) const;
   virtual void h_dpT(Real pressure, Real temperature, Real & h, Real & dh_dp, Real & dh_dT) const;
+
+  virtual Real p_from_h_s(Real h, Real s) const;
+  virtual Real dpdh_from_h_s(Real h, Real s) const;
 
   virtual Real c2_from_p_rho(Real pressure, Real rho) const;
 
@@ -62,10 +73,8 @@ protected:
   Real _p_inf;
   Real _cp;
 
-  Real _beta;
   Real _mu;
   Real _k;
 };
-
 
 #endif /* STIFFENEDGASFLUIDPROPERTIES_H */

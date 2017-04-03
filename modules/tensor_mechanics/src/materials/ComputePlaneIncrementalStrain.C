@@ -6,30 +6,53 @@
 /****************************************************************/
 #include "ComputePlaneIncrementalStrain.h"
 
-template<>
-InputParameters validParams<ComputePlaneIncrementalStrain>()
+template <>
+InputParameters
+validParams<ComputePlaneIncrementalStrain>()
 {
   InputParameters params = validParams<Compute2DIncrementalStrain>();
-  params.addClassDescription("Compute strain increment for small strain under 2D planar assumptions.");
-  params.addCoupledVar("scalar_strain_zz", "Variable containing the out-of-plane strain");
+  params.addClassDescription(
+      "Compute strain increment for small strain under 2D planar assumptions.");
+  params.addCoupledVar("scalar_out_of_plane_strain",
+                       "Scalar variable for generalized plane strain");
+  params.addCoupledVar("out_of_plane_strain", "Nonlinear variable for plane stress condition");
+
   return params;
 }
 
-ComputePlaneIncrementalStrain::ComputePlaneIncrementalStrain(const InputParameters & parameters) :
-    Compute2DIncrementalStrain(parameters),
-    _scalar_strain_zz(isCoupledScalar("scalar_strain_zz") ? coupledScalarValue("scalar_strain_zz") : _zero),
-    _scalar_strain_zz_old(isCoupledScalar("scalar_strain_zz") ? coupledScalarValueOld("scalar_strain_zz") : _zero)
+ComputePlaneIncrementalStrain::ComputePlaneIncrementalStrain(const InputParameters & parameters)
+  : Compute2DIncrementalStrain(parameters),
+    _scalar_out_of_plane_strain_coupled(isCoupledScalar("scalar_out_of_plane_strain")),
+    _scalar_out_of_plane_strain(_scalar_out_of_plane_strain_coupled
+                                    ? coupledScalarValue("scalar_out_of_plane_strain")
+                                    : _zero),
+    _scalar_out_of_plane_strain_old(_scalar_out_of_plane_strain_coupled
+                                        ? coupledScalarValueOld("scalar_out_of_plane_strain")
+                                        : _zero),
+    _out_of_plane_strain_coupled(isCoupled("out_of_plane_strain")),
+    _out_of_plane_strain(_out_of_plane_strain_coupled ? coupledValue("out_of_plane_strain")
+                                                      : _zero),
+    _out_of_plane_strain_old(_out_of_plane_strain_coupled ? coupledValueOld("out_of_plane_strain")
+                                                          : _zero)
 {
+  if (_out_of_plane_strain_coupled && _scalar_out_of_plane_strain_coupled)
+    mooseError("Must define only one of out_of_plane_strain or scalar_out_of_plane_strain");
 }
 
 Real
-ComputePlaneIncrementalStrain::computeDeformGradZZ()
+ComputePlaneIncrementalStrain::computeGradDispZZ()
 {
-    return _scalar_strain_zz[0];
+  if (_scalar_out_of_plane_strain_coupled)
+    return _scalar_out_of_plane_strain[0];
+  else
+    return _out_of_plane_strain[_qp];
 }
 
 Real
-ComputePlaneIncrementalStrain::computeDeformGradZZold()
+ComputePlaneIncrementalStrain::computeGradDispZZOld()
 {
-    return _scalar_strain_zz_old[0];
+  if (_scalar_out_of_plane_strain_coupled)
+    return _scalar_out_of_plane_strain_old[0];
+  else
+    return _out_of_plane_strain_old[_qp];
 }

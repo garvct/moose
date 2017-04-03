@@ -1,6 +1,10 @@
+[GlobalParams]
+  volumetric_locking_correction = true
+  displacements = 'disp_x disp_y'
+[]
+
 [Mesh]
   file = single_point_2d.e
-  displacements = 'disp_x disp_y'
 []
 
 [Variables]
@@ -12,8 +16,6 @@
 
 [AuxVariables]
   [./penetration]
-    order = FIRST
-    family = LAGRANGE
   [../]
   [./saved_x]
   [../]
@@ -41,14 +43,10 @@
   [../]
 []
 
-[SolidMechanics]
-  [./solid]
-    disp_x = disp_x
-    disp_y = disp_y
-    save_in_disp_x = saved_x
-    save_in_disp_y = saved_y
-    diag_save_in_disp_x = diag_saved_x
-    diag_save_in_disp_y = diag_saved_y
+[Kernels]
+  [./TensorMechanics]
+    use_displaced_mesh = true
+    save_in = 'saved_x saved_y'
   [../]
 []
 
@@ -115,21 +113,33 @@
 []
 
 [Materials]
-  [./bottom]
-    type = LinearIsotropicMaterial
-    block = 1
-    disp_y = disp_y
-    disp_x = disp_x
-    poissons_ratio = 0.3
+  [./bot_elas_tens]
+    type = ComputeIsotropicElasticityTensor
+    block = '1'
     youngs_modulus = 1e9
-  [../]
-  [./top]
-    type = LinearIsotropicMaterial
-    block = 2
-    disp_y = disp_y
-    disp_x = disp_x
     poissons_ratio = 0.3
+  [../]
+  [./bot_strain]
+    type = ComputePlaneFiniteStrain
+    block = '1'
+  [../]
+  [./bot_stress]
+    type = ComputeFiniteStrainElasticStress
+    block = '1'
+  [../]
+  [./top_elas_tens]
+    type = ComputeIsotropicElasticityTensor
+    block = '2'
     youngs_modulus = 1e6
+    poissons_ratio = 0.3
+  [../]
+  [./top_strain]
+    type = ComputePlaneFiniteStrain
+    block = '2'
+  [../]
+  [./top_stress]
+    type = ComputeFiniteStrainElasticStress
+    block = '2'
   [../]
 []
 
@@ -153,16 +163,6 @@
     type = NodalSum
     variable = saved_y
     boundary = 4
-  [../]
-  [./ref_resid_x]
-    type = NodalL2Norm
-    execute_on = timestep_end
-    variable = saved_x
-  [../]
-  [./ref_resid_y]
-    type = NodalL2Norm
-    execute_on = timestep_end
-    variable = saved_y
   [../]
   [./disp_x]
     type = NodalVariableValue
@@ -198,8 +198,6 @@
 
 [Executioner]
   type = Transient
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
 
   petsc_options_iname = '-pc_type -pc_factor_mat_solver_package'
@@ -234,8 +232,6 @@
   [./leftright]
     master = 2
     slave = 3
-    disp_y = disp_y
-    disp_x = disp_x
     model = coulomb
     system = constraint
     formulation = kinematic

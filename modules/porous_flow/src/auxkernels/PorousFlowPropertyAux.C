@@ -7,68 +7,83 @@
 
 #include "PorousFlowPropertyAux.h"
 
-template<>
-InputParameters validParams<PorousFlowPropertyAux>()
+template <>
+InputParameters
+validParams<PorousFlowPropertyAux>()
 {
   InputParameters params = validParams<AuxKernel>();
-  params.addRequiredParam<UserObjectName>("PorousFlowDictator", "The UserObject that holds the list of PorousFlow variable names");
-  MooseEnum property_enum("pressure saturation temperature density viscosity mass_fraction relperm enthalpy internal_energy");
-  params.addRequiredParam<MooseEnum>("property", property_enum, "The fluid property that this auxillary kernel is to calculate");
+  params.addRequiredParam<UserObjectName>(
+      "PorousFlowDictator", "The UserObject that holds the list of PorousFlow variable names");
+  MooseEnum property_enum("pressure saturation temperature density viscosity mass_fraction relperm "
+                          "enthalpy internal_energy");
+  params.addRequiredParam<MooseEnum>(
+      "property", property_enum, "The fluid property that this auxillary kernel is to calculate");
   params.addParam<unsigned int>("phase", 0, "The index of the phase this auxillary kernel acts on");
-  params.addParam<unsigned int>("fluid_component", 0, "The index of the fluid component this auxillary kernel acts on");
+  params.addParam<unsigned int>(
+      "fluid_component", 0, "The index of the fluid component this auxillary kernel acts on");
+  params.addClassDescription("AuxKernel to provide access to properties evaluated at quadpoints. "
+                             "Note that elemental AuxVariables must be used, so that these "
+                             "properties are integrated over each element.");
   return params;
 }
 
-PorousFlowPropertyAux::PorousFlowPropertyAux(const InputParameters & parameters) :
-    AuxKernel(parameters),
+PorousFlowPropertyAux::PorousFlowPropertyAux(const InputParameters & parameters)
+  : AuxKernel(parameters),
     _dictator(getUserObject<PorousFlowDictator>("PorousFlowDictator")),
-    _property_enum(getParam<MooseEnum>("property")),
+    _property_enum(getParam<MooseEnum>("property").getEnum<PropertyEnum>()),
     _phase(getParam<unsigned int>("phase")),
     _fluid_component(getParam<unsigned int>("fluid_component"))
 {
   // Check that the phase and fluid_component are valid
   if (_phase >= _dictator.numPhases())
-    mooseError("Phase number in the AuxKernel " << _name << " is greater than the number of phases in the problem");
+    mooseError("Phase number in the AuxKernel ",
+               _name,
+               " is greater than the number of phases in the problem");
 
   if (_fluid_component >= _dictator.numComponents())
-    mooseError("Fluid component number in the AuxKernel " << _name << " is greater than the number of phases in the problem");
+    mooseError("Fluid component number in the AuxKernel ",
+               _name,
+               " is greater than the number of phases in the problem");
 
   // Only get material properties required by this instance of the AuxKernel
   switch (_property_enum)
   {
-    case 0: // pressure
-      _pressure = &getMaterialProperty<std::vector<Real> >("PorousFlow_porepressure_qp");
+    case PRESSURE:
+      _pressure = &getMaterialProperty<std::vector<Real>>("PorousFlow_porepressure_qp");
       break;
 
-    case 1: // saturation
-      _saturation = &getMaterialProperty<std::vector<Real> >("PorousFlow_saturation_qp");
+    case SATURATION:
+      _saturation = &getMaterialProperty<std::vector<Real>>("PorousFlow_saturation_qp");
       break;
 
-    case 2: // temperature
+    case TEMPERATURE:
       _temperature = &getMaterialProperty<Real>("PorousFlow_temperature_qp");
       break;
 
-    case 3: // density
-      _fluid_density = &getMaterialProperty<std::vector<Real> >("PorousFlow_fluid_phase_density_qp");
+    case DENSITY:
+      _fluid_density = &getMaterialProperty<std::vector<Real>>("PorousFlow_fluid_phase_density_qp");
       break;
 
-    case 4: // viscosity
-      _fluid_viscosity = &getMaterialProperty<std::vector<Real> >("PorousFlow_viscosity");
+    case VISCOSITY:
+      _fluid_viscosity = &getMaterialProperty<std::vector<Real>>("PorousFlow_viscosity_qp");
       break;
 
-    case 5: // mass fraction
-      _mass_fractions = &getMaterialProperty<std::vector<std::vector<Real> > >("PorousFlow_mass_frac");
+    case MASS_FRACTION:
+      _mass_fractions =
+          &getMaterialProperty<std::vector<std::vector<Real>>>("PorousFlow_mass_frac_qp");
       break;
 
-    case 6: // relative permeability
-      _relative_permeability = &getMaterialProperty<std::vector<Real> >("PorousFlow_relative_permeability");
+    case RELPERM:
+      _relative_permeability =
+          &getMaterialProperty<std::vector<Real>>("PorousFlow_relative_permeability_qp");
       break;
 
-    case 7: // enthalpy
-      _enthalpy = &getMaterialProperty<std::vector<Real> >("PorousFlow_fluid_phase_enthalpy_nodal");
+    case ENTHALPY:
+      _enthalpy = &getMaterialProperty<std::vector<Real>>("PorousFlow_fluid_phase_enthalpy_qp");
 
-    case 8: // internal_energy
-      _internal_energy = &getMaterialProperty<std::vector<Real> >("PorousFlow_fluid_phase_internal_energy_nodal");
+    case INTERNAL_ENERGY:
+      _internal_energy =
+          &getMaterialProperty<std::vector<Real>>("PorousFlow_fluid_phase_internal_energy_qp");
   }
 }
 
@@ -79,39 +94,39 @@ PorousFlowPropertyAux::computeValue()
 
   switch (_property_enum)
   {
-    case 0: // pressure
+    case PRESSURE:
       property = (*_pressure)[_qp][_phase];
       break;
 
-    case 1: // saturation
+    case SATURATION:
       property = (*_saturation)[_qp][_phase];
       break;
 
-    case 2: // temperature
+    case TEMPERATURE:
       property = (*_temperature)[_qp];
       break;
 
-    case 3: // density
+    case DENSITY:
       property = (*_fluid_density)[_qp][_phase];
       break;
 
-    case 4: // viscosity
+    case VISCOSITY:
       property = (*_fluid_viscosity)[_qp][_phase];
       break;
 
-    case 5: // mass fraction
+    case MASS_FRACTION:
       property = (*_mass_fractions)[_qp][_phase][_fluid_component];
       break;
 
-    case 6: // relative permeability
+    case RELPERM:
       property = (*_relative_permeability)[_qp][_phase];
       break;
 
-    case 7: // enthalpy
+    case ENTHALPY:
       property = (*_enthalpy)[_qp][_phase];
       break;
 
-    case 8: // internal_energy
+    case INTERNAL_ENERGY:
       property = (*_internal_energy)[_qp][_phase];
       break;
   }

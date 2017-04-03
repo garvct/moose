@@ -21,10 +21,10 @@
 // libmesh includes
 #include "libmesh/threads.h"
 
-ComputeElemAuxBcsThread::ComputeElemAuxBcsThread(FEProblem & problem,
+ComputeElemAuxBcsThread::ComputeElemAuxBcsThread(FEProblemBase & problem,
                                                  const MooseObjectWarehouse<AuxKernel> & storage,
-                                                 bool need_materials) :
-    _problem(problem),
+                                                 bool need_materials)
+  : _problem(problem),
     _aux_sys(problem.getAuxiliarySystem()),
     _storage(storage),
     _need_materials(need_materials)
@@ -32,8 +32,9 @@ ComputeElemAuxBcsThread::ComputeElemAuxBcsThread(FEProblem & problem,
 }
 
 // Splitting Constructor
-ComputeElemAuxBcsThread::ComputeElemAuxBcsThread(ComputeElemAuxBcsThread & x, Threads::split /*split*/) :
-    _problem(x._problem),
+ComputeElemAuxBcsThread::ComputeElemAuxBcsThread(ComputeElemAuxBcsThread & x,
+                                                 Threads::split /*split*/)
+  : _problem(x._problem),
     _aux_sys(x._aux_sys),
     _storage(x._storage),
     _need_materials(x._need_materials)
@@ -41,13 +42,13 @@ ComputeElemAuxBcsThread::ComputeElemAuxBcsThread(ComputeElemAuxBcsThread & x, Th
 }
 
 void
-ComputeElemAuxBcsThread::operator() (const ConstBndElemRange & range)
+ComputeElemAuxBcsThread::operator()(const ConstBndElemRange & range)
 {
   ParallelUniqueId puid;
   _tid = puid.id;
 
   // Reference to all boundary restricted AuxKernels for the current thread
-  const std::map<BoundaryID, std::vector<MooseSharedPointer<AuxKernel> > > & boundary_kernels = _storage.getActiveBoundaryObjects(_tid);
+  const auto & boundary_kernels = _storage.getActiveBoundaryObjects(_tid);
 
   for (const auto & belem : range)
   {
@@ -65,15 +66,22 @@ ComputeElemAuxBcsThread::operator() (const ConstBndElemRange & range)
       }
 
       // Locate the AuxKernel objects for the current BoundaryID
-      const std::map<BoundaryID, std::vector<MooseSharedPointer<AuxKernel> > >::const_iterator iter = boundary_kernels.find(boundary_id);
+      const auto iter = boundary_kernels.find(boundary_id);
 
-      if (iter != boundary_kernels.end() && !(iter->second.empty()) )
+      if (iter != boundary_kernels.end() && !(iter->second.empty()))
       {
         _problem.prepare(elem, _tid);
         _problem.reinitElemFace(elem, side, boundary_id, _tid);
 
         if (_need_materials)
         {
+          std::set<unsigned int> needed_mat_props;
+          for (const auto & aux : iter->second)
+          {
+            const std::set<unsigned int> & mp_deps = aux->getMatPropDependencies();
+            needed_mat_props.insert(mp_deps.begin(), mp_deps.end());
+          }
+          _problem.setActiveMaterialProperties(needed_mat_props, _tid);
           _problem.reinitMaterialsFace(elem->subdomain_id(), _tid);
           _problem.reinitMaterialsBoundary(boundary_id, _tid);
         }
@@ -85,7 +93,10 @@ ComputeElemAuxBcsThread::operator() (const ConstBndElemRange & range)
           aux->compute();
 
         if (_need_materials)
+        {
           _problem.swapBackMaterialsFace(_tid);
+          _problem.clearActiveMaterialProperties(_tid);
+        }
 
         // Set active boundary id to invalid
         _problem.setCurrentBoundaryID(Moose::INVALID_BOUNDARY_ID);

@@ -1,10 +1,7 @@
-# Test the density and viscosity calculated by the brine Material
+# Test the density and viscosity calculated by the brine material
 # Pressure 20 MPa
 # Temperature 50C
 # xnacl = 0.1047 (equivalent to 2.0 molality)
-# Brine density should equal 1100.87 kg/m^3 (Pitzer et al, 1984)
-# Brine viscosity should equal 0.0006777 Pa.s (Phillips et al, 1980)
-# Results are within expected accuracy
 
 [Mesh]
   type = GeneratedMesh
@@ -52,16 +49,13 @@
     type = PorousFlowTemperature
     temperature = temp
   [../]
-  [./nnn]
-    type = PorousFlowNodeNumber
-    on_initial_only = true
-  [../]
   [./ppss]
     type = PorousFlow1PhaseP
     porepressure = pp
   [../]
-  [./dens0]
+  [./brine]
     type = PorousFlowBrine
+    temperature_unit = Celsius
     xnacl = 0.1047
     phase = 0
   [../]
@@ -87,23 +81,19 @@
   [../]
   [./density]
     type = ElementIntegralMaterialProperty
-    mat_prop = 'PorousFlow_fluid_phase_density0'
+    mat_prop = 'PorousFlow_fluid_phase_density_qp0'
   [../]
   [./viscosity]
     type = ElementIntegralMaterialProperty
-    mat_prop = 'PorousFlow_viscosity0'
+    mat_prop = 'PorousFlow_viscosity_qp0'
   [../]
-  [./ddensity_dp]
+  [./enthalpy]
     type = ElementIntegralMaterialProperty
-    mat_prop = 'dPorousFlow_fluid_phase_density0/dpressure_variable_dummy'
+    mat_prop = 'PorousFlow_fluid_phase_enthalpy_qp0'
   [../]
-  [./ddensity_dt]
+  [./internal_energy]
     type = ElementIntegralMaterialProperty
-    mat_prop = 'dPorousFlow_fluid_phase_density0/dtemperature_variable_dummy'
-  [../]
-  [./dviscosity_dt]
-    type = ElementIntegralMaterialProperty
-    mat_prop = 'dPorousFlow_viscosity0/dtemperature_variable_dummy'
+    mat_prop = 'PorousFlow_fluid_phase_internal_energy_qp0'
   [../]
 []
 

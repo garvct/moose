@@ -23,14 +23,13 @@
 
 // Forward Declarations
 class ElemElemConstraint;
-class FEProblem;
+class FEProblemBase;
 
-template<>
+template <>
 InputParameters validParams<ElemElemConstraint>();
 
-class ElemElemConstraint :
-  public Constraint,
-  public NeighborCoupleableMooseVariableDependencyIntermediateInterface
+class ElemElemConstraint : public Constraint,
+                           public NeighborCoupleableMooseVariableDependencyIntermediateInterface
 {
 public:
   ElemElemConstraint(const InputParameters & parameters);
@@ -66,13 +65,13 @@ public:
   virtual void computeJacobian();
 
 protected:
-  FEProblem & _fe_problem;
+  FEProblemBase & _fe_problem;
   unsigned int _dim;
 
-  const Elem * & _current_elem;
+  const Elem *& _current_elem;
 
   /// The neighboring element
-  const Elem * & _neighbor_elem;
+  const Elem *& _neighbor_elem;
 
   /// Quadrature points used in integration of constraint
   std::vector<Point> _constraint_q_point;
@@ -113,14 +112,16 @@ protected:
   const VariableGradient & _grad_u_neighbor;
 
   /**
-   *  Compute the residual for one of the constraint quadrature points.  Must be overwritten by derived class.
+   *  Compute the residual for one of the constraint quadrature points.  Must be overwritten by
+   * derived class.
    */
   virtual Real computeQpResidual(Moose::DGResidualType type) = 0;
 
   /**
-   *  Compute the Jacobian for one of the constraint quadrature points.  Must be overwritten by derived class.
+   *  Compute the Jacobian for one of the constraint quadrature points.  Must be overwritten by
+   * derived class.
    */
   virtual Real computeQpJacobian(Moose::DGJacobianType type) = 0;
 };
 
-#endif /* ELEMELEMCONSTRAINT_H_ */
+#endif /* ELEMELEMCONSTRAINT_H */

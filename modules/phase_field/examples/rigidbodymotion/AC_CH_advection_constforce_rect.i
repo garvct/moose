@@ -34,15 +34,11 @@
 []
 
 [AuxVariables]
-  [./vadv00]
+  [./vadvx]
     order = CONSTANT
     family = MONOMIAL
   [../]
-  [./vadv01]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./vadv0_div]
+  [./vadvy]
     order = CONSTANT
     family = MONOMIAL
   [../]
@@ -75,6 +71,7 @@
     v = eta
     grain_tracker_object = grain_center
     grain_force = grain_force
+    grain_volumes = grain_volumes
   [../]
   [./eta_dot]
     type = TimeDerivative
@@ -88,6 +85,7 @@
     v = eta
     grain_tracker_object = grain_center
     grain_force = grain_force
+    grain_volumes = grain_volumes
   [../]
   [./acint_eta]
     type = ACInterface
@@ -106,24 +104,21 @@
 []
 
 [AuxKernels]
-  [./vadv00]
-    # outputting components of advection velocity
-    type = MaterialStdVectorRealGradientAux
-    variable = vadv00
-    property = advection_velocity
+  [./vadv_x]
+    type = GrainAdvectionAux
+    component = x
+    grain_tracker_object = grain_center
+    grain_force = grain_force
+    grain_volumes = grain_volumes
+    variable = vadvx
   [../]
-  [./vadv01]
-    # outputting components of advection velocity
-    type = MaterialStdVectorRealGradientAux
-    variable = vadv01
-    property = advection_velocity
-    component = 1
-  [../]
-  [./vadv0_div]
-    # outputting components of advection velocity
-    type = MaterialStdVectorAux
-    variable = vadv0_div
-    property = advection_velocity_divergence
+  [./vadv_y]
+    type = GrainAdvectionAux
+    component = y
+    grain_tracker_object = grain_center
+    grain_force = grain_force
+    grain_volumes = grain_volumes
+    variable = vadvy
   [../]
 []
 
@@ -141,14 +136,6 @@
     function = 16*barr_height*(c-cv_eq)^2*(1-cv_eq-c)^2+(c-eta)^2
     derivative_order = 2
   [../]
-  [./advection_vel]
-    # advection velocity is being calculated
-    type = GrainAdvectionVelocity
-    grain_force = grain_force
-    etas = eta
-    c = c
-    grain_data = grain_center
-  [../]
 []
 
 [VectorPostprocessors]
@@ -165,7 +152,6 @@
     variable = eta
     outputs = none
     compute_var_to_feature_map = true
-    calculate_feature_volumes = true
     execute_on = 'initial timestep_begin'
   [../]
   [./grain_force]

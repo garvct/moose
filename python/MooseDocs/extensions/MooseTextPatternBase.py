@@ -1,5 +1,6 @@
 import re
 import os
+import cgi
 import logging
 import copy
 log = logging.getLogger(__name__)
@@ -14,38 +15,34 @@ class MooseTextPatternBase(MooseCommonExtension, Pattern):
     Base class for pattern matching text blocks.
 
     Args:
-        regex: The string containing the regular expression to match.
-        language[str]: The code language (e.g., 'python' or 'c++')
+      regex: The string containing the regular expression to match.
+      language[str]: The code language (e.g., 'python' or 'c++')
     """
 
-    def __init__(self, pattern, language=None, repo=None, root=None, **kwargs):
-        Pattern.__init__(self, pattern, **kwargs)
-
-        # Set the language
-        self._language = language
+    def __init__(self, pattern, markdown_instance=None, repo=None, **kwargs):
+        MooseCommonExtension.__init__(self, **kwargs)
+        Pattern.__init__(self, pattern, markdown_instance)
 
         # The root/repo settings
-        self._root = root
         self._repo = repo
 
         # The default settings
-        self._settings = {'strip_header'        : True,
-                          'repo_link'           : True,
-                          'label'               : True,
-                          'method'              : True,
-                          'block'               : True,
-                          'strip-extra-newlines': False}
-
-        # Applying overflow/max-height CSS to <div> and <code> causes multiple scroll bars
-        # do not let code float, the div will do this for us
-        self._invalid_css = { 'div' : ['overflow-y', 'overflow-x', 'max-height'], 'code' : ['float'] }
+        self._settings['strip_header'] = True
+        self._settings['repo_link'] = True
+        self._settings['label'] = True
+        self._settings['language'] = 'text'
+        self._settings['strip-extra-newlines'] = True
+        self._settings['prefix'] = ''
+        self._settings['suffix'] = ''
+        self._settings['indent'] = 0
+        self._settings['strip-leading-whitespace'] = False
 
     def prepareContent(self, content, settings):
         """
         Prepare the convent for conversion to Element object.
 
         Args:
-            content[str]: The content to prepare (i.e., the file contents).
+          content[str]: The content to prepare (i.e., the file contents).
         """
 
         # Strip leading/trailing newlines
@@ -56,24 +53,42 @@ class MooseTextPatternBase(MooseCommonExtension, Pattern):
         if settings['strip-extra-newlines']:
             content = re.sub(r'(\n{3,})', '\n\n', content)
 
-        # Strip header and leading/trailing whitespace and newlines
-        if self._settings['strip_header']:
+        # Strip header
+        if settings['strip_header']:
             strt = content.find('/********')
             stop = content.rfind('*******/\n')
             content = content.replace(content[strt:stop+9], '')
 
+        # Strip leading white-space
+        if settings['strip-leading-whitespace']:
+            content = re.sub(r'^(\s+)', '', content, flags=re.MULTILINE)
+
+        # Add indent
+        if settings['indent'] > 0:
+            lines = content.split('\n')
+            content = []
+            for line in lines:
+                content.append('{}{}'.format(' '*int(settings['indent']), line))
+            content = '\n'.join(content)
+
+        # Prefix/suffix
+        if settings['prefix']:
+            content = '{}\n{}'.format(settings['prefix'], content)
+        if settings['suffix']:
+            content = '{}\n{}'.format(content, settings['suffix'])
+
         return content
 
-    def createElement(self, label, content, filename, rel_filename, settings, styles):
+    def createElement(self, label, content, filename, rel_filename, settings):
         """
         Create the code element from the supplied source code content.
 
         Args:
-            label[str]: The label supplied in the regex, [label](...)
-            content[str]: The code content to insert into the markdown.
-            filename[str]: The complete filename (for error checking)
-            rel_filename[str]: The relative filename; used for creating github link.
-            settings[dict]: The current settings.
+          label[str]: The label supplied in the regex, [label](...)
+          content[str]: The code content to insert into the markdown.
+          filename[str]: The complete filename (for error checking)
+          rel_filename[str]: The relative filename; used for creating github link.
+          settings[dict]: The current settings.
 
         NOTE: The code related settings and clean up are applied in this method.
         """
@@ -82,7 +97,8 @@ class MooseTextPatternBase(MooseCommonExtension, Pattern):
         content = self.prepareContent(content, settings)
 
         # Build outer div container
-        el = self.addStyle(etree.Element('div'), **styles)
+        el = self.applyElementSettings(etree.Element('div'), settings)
+        el.set('class', 'moosedocs-code-div')
 
         # Build label
         if settings['repo_link'] and self._repo:
@@ -91,14 +107,15 @@ class MooseTextPatternBase(MooseCommonExtension, Pattern):
         else:
             title = etree.SubElement(el, 'div')
 
-        if self._settings['label']:
+        if settings['label']:
             title.text = label
 
         # Build the code
         pre = etree.SubElement(el, 'pre')
-        code = self.addStyle(etree.SubElement(pre, 'code'), **styles)
-        if self._language:
-            code.set('class', 'hljs ' + self._language)
-        code.text = content
+        code = etree.SubElement(pre, 'code')
+        if settings['language']:
+            code.set('class', settings['language'])
+        content = cgi.escape(content, quote=True)
+        code.text = self.markdown.htmlStash.store(content.strip('\n'))
 
         return el

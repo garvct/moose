@@ -63,6 +63,17 @@
     exodiff = 'grain_tracker_ebsd_out.e'
   [../]
 
+  [./split_grain]
+    type = 'CSVDiff'
+    # Make sure that this simulation hits the "split grain" logic branch
+    expect_out = 'Split Grain Detected'
+    input = 'split_grain.i'
+    csvdiff = 'split_grain_out.csv'
+    max_time = 500
+    method = '!DBG' # slow test
+    valgrind ='HEAVY'
+  [../]
+
   ###################################################
   # Faux grain tracker
   ###################################################
@@ -91,6 +102,13 @@
     type = 'CSVDiff'
     input = 'grain_tracker_volume.i'
     csvdiff = 'grain_tracker_volume_out_grain_volumes_0000.csv'
+    rel_err = 1.e-3
+  [../]
+
+  [./grain_tracker_volume_single]
+    type = 'CSVDiff'
+    input = 'grain_tracker_volume_single.i'
+    csvdiff = 'grain_tracker_volume_single_out_grain_volumes_0000.csv'
     rel_err = 1.e-3
   [../]
 

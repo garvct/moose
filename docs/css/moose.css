@@ -1,65 +1,377 @@
-/* Collapse Nav-bar correctly */
-@media(min-width: 768px) {
-    .bs-sidebar.affix {
-	top: 110px;
-    }
-    div.col-md-3 {
-	margin-top: 60px;
-    }
-}
-@media(min-width:992px) {
-    .bs-sidebar.affix {
-	top: 140px;
-}
-    div.col-md-9 {
-	margin-top: 50px;
-    }
-}
-@media(min-width:1200px) {
-    .bs-sidebar.affix {
-	top: 90px;
-}
-    div.col-md-9 {
-	margin-top: 5px;
-    }
-}
-/* End Collapse Nav-bar correctly */
-
-/* Get rid of the Previous and Next buttons */
-ul.nav.navbar-right > li:nth-of-type(2), ul.nav.navbar-right > li:nth-of-type(3){
-    display: none;
-}
-/* Get rid of the Previous and Next buttons */
-
-p {
+html {
+    font-family: GillSans, Calibri, Trebuchet, sans-serif;
+    line-height: 1.75rem;
+    color: rgba(0,0,0,1.0);
+    font-size: large;
     text-align: justify;
 }
-a {
-    color: #0333a5;
-    text-decoration: none;
+
+/* make inline code snippets have a non-white background */
+code {
+  background: #f5f2f0;
 }
 
-a:hover, a:focus {
-    color: #0333a5;
-    text-decoration: underline;
+html, body {
+  height: 100%;
 }
 
-/* NavBar hover color modification (bluish to more closely match our </a> links color) */
-.navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus , .navbar-default .navbar-nav > li > a:hover, .navbar-default .navbar-nav > li > a:focus {
-    color: #b7c0ff;
+.page-wrap {
+  min-height: 100%;
+  /* equal to footer height */
+  margin-bottom: -142px;
 }
 
-pre {
-    overflow: auto;
+.page-wrap:after {
+  content: "";
+  display: block;
 }
 
-hr {
-    border-bottom-style: groove;
-    border-bottom-width: 2px;
+.page-footer, .page-wrap:after {
+  height: 142px;
 }
-/* NavBar submenu font color */
-.dropdown-menu>li>a {
-    color: #383d3e;
+
+h1 {
+    font-size:260%;
+    font-weight:300;
+}
+
+h2 {
+    font-size:230%;
+    font-weight:300;
+}
+
+h3 {
+    font-size:160%;
+    font-weight:300;
+}
+
+h4 {
+    font-size:140%;
+    font-weight:300;
+}
+
+p {
+    top-margin:1.5rem;
+}
+
+ul {
+     margin-left:1.5rem;
+}
+
+.moose-site-generated{
+    text-align: left;
+    float: left;
+}
+
+.moose-edit-markdown{
+    text-align: right;
+    float: right;
+}
+
+.moose-copy-button{
+    box-sizing: padding-box;
+    position:relative;
+    bottom: 15px;
+    left: 15px;
+    float:right;
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: small;
+    opacity: 0.15;
+}
+
+.moose-copy-button:hover{
+  opacity:1;
+}
+
+moose-caption {
+    padding: 5px;
+    margin: 0px;
+}
+
+.toc-wrapper {
+    width:220px;
+}
+
+.moose-code-links,
+.moose-doxygen-link {
+    padding: 2px;
+    font-size:80%;
+    margin-top:10px;
+    width:100%;
+}
+
+.moose-code-links {
+    text-transform: none;
+}
+
+a.moose-bad-link{
+    color:red;
+}
+
+li{
+    padding-left:15px;
+}
+
+.moose-chip{
+    margin-left: 10px;
+    bottom: 8px;
+    position: relative;
+}
+
+#logo-container {
+    height: 57px;
+    margin-bottom: 32px;
+}
+
+.table-of-contents a.active {
+    border-left: 2px solid #005897;
+}
+
+.collapsible-header .row{
+    margin:0;
+}
+
+.collapsible-body{
+    padding:0px;
+    padding-left: 30px;
+    padding-top: 5px;
+    padding-bottom: 15px;
+    padding-right: 30px;
+}
+
+.collapsible-header .moose-parameter-name{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-weight:600;
+}
+
+.collapsible-header .moose-parameter-header-default{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    color:#757575;
+    font-weight:100;
+}
+
+.collapsible-header .moose-parameter-header-description{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    color:#757575;
+}
+
+.collapsible-body .moose-parameter-default,
+.collapsible-body .moose-parameter-type{
+    color:#757575;
+    font-weight:100;
+}
+
+li.active .collapsible-header .moose-collection-description,
+li.active .collapsible-header .moose-parameter-header-description,
+li.active .collapsible-header .moose-parameter-header-default{
+    display:none;
+}
+
+li.active .collapsible-header .moose-collection-name,
+li.active .collapsible-header .moose-parameter-name{
+    overflow:unset;
+}
+
+nav,
+.btn,
+.btn-large,
+footer.page-footer{
+    background-color:#005897;
+}
+
+.side-nav .collapsible li.active a.active,
+.side-nav.fixed .collapsible li.active a.active {
+    background-color:#e8e8e8;
+}
+
+.side-nav .collapsible ul:last-child a.active:last-child,
+.side-nav.fixed .collapsible ul:last-child a.active:last-child{
+    background-color:#005897;
+    color:#fff;
+    font-weight:500;
+}
+
+footer.page-footer {
+    padding-top:0px;
+}
+
+.container{
+    width:90%;
+}
+
+.side-nav .collapsible li,
+.side-nav.fixed .collapsible li{
+    color:#757575;
+    font-family: sans-serif;
+    font-weight:300;
+}
+
+.side-nav .collapsible li{
+    padding-left:10px;
+}
+
+.side-nav .collapsible li.active a,
+.side-nav.fixed .collapsible li.active a
+{
+    color:#757575;
+    font-family: sans-serif;
+    font-weight:300;
+}
+
+.breadcrumb-nav{
+    margin-top: 24px;
+    padding-left: 12px;
+    background-color: transparent;
+}
+
+a.breadcrumb{
+    text-decoration:underline
+}
+
+.breadcrumb{
+    color:#757575;
+    font-family: sans-serif;
+    font-weight:300;
+}
+
+.breadcrumb:before{
+    color:#757575;
+}
+
+.breadcrumb:last-child{
+    color:#757575;
+    font-family: sans-serif;
+    font-weight:500;
+}
+
+.page-title{
+    font-size:x-large;
+}
+
+.github-mark-label{
+    color:white;
+}
+
+.github-mark{
+    height: 24px;
+    vertical-align: middle;
+    padding-bottom: 4px;
+    padding-right: 4px;
+}
+
+input[type="search"] {
+height: 64px !important; /* or height of nav */
+}
+
+.dropdown-button .material-icons{
+    margin-left:0;
+}
+
+@media only screen and (max-width : 992px) {
+    header, main, footer {
+        padding-left: 0;
+    }
+}
+
+/* Class for when element is above threshold */
+.pin-top {
+    width:220px;
+    position: relative;
+}
+
+// Class for when element is below threshold
+.pin-bottom {
+    width:220px;
+    position: relative;
+}
+
+// Class for when element is pinned
+.pinned {
+    width:220px;
+    position: fixed !important;
+}
+
+.button-collapse {
+    color: white;
+    padding-right: 8px;
+}
+
+.parallax-container {
+    min-height: 380px;
+    line-height: 0;
+    height: auto;
+    color: rgba(255,255,255,.9);
+}
+
+.parallax-container .section {
+    width: 100%;
+}
+
+@media only screen and (max-width : 992px) {
+    .parallax-container .section {
+        position: absolute;
+        top: 40%;
+    }
+    #index-banner .section {
+        top: 10%;
+    }
+}
+
+@media only screen and (max-width : 600px) {
+    #index-banner .section {
+        top: 0;
+    }
+}
+
+.icon-block {
+    padding: 0 15px;
+}
+
+.icon-block .material-icons {
+  font-size: inherit;
+}
+
+footer.page-footer {
+  margin: 0;
+}
+
+.moose-caption {
+    padding: 5px;
+}
+
+
+.moose-group-header{
+    color: white;
+    background-color: #005897;
+    font-size: larger;
+}
+
+.moose-system-list .material-icons{
+    margin-left:15px;
+}
+
+.collapsible-header .moose-collection-name{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.collapsible-header .moose-collection-description{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    color:#757575;
+}
+
+.moose-system-list .collapsible-header .row{
+    margin-bottom: 0;
 }
 
 /* Slideshows with white backgrounds and captions, need a black drop text shadow */
@@ -67,10 +379,13 @@ hr {
     text-shadow: 1px 1px 9px rgba(0, 0, 0, 1);
 }
 
+
+/* Admonition */
 .admonition-title {
+    margin-top:0px;
     font-weight: bold;
     display: block;
-    padding: 6px 12px;
+    padding: 6px 6px;
     color: #fff;
     margin-bottom: 12px;
     border: 0px solid transparent;
@@ -87,6 +402,7 @@ hr {
 }
 
 .admonition > p{
+    margin: 0px;
     padding: 6px;
     text-align: left;
 }
@@ -141,9 +457,9 @@ hr {
     color: #000;
     border: 0px solid transparent;
 }
-/*
-Slide style
-*/
+
+
+/* Slide style */
 .reveal h1 {
     font-size: 2em;
 }
@@ -155,6 +471,8 @@ Slide style
 .reveal .slides > section {
   text-align: left;
 }
+
+
 /* MOOSE Build status CSS */
 .boxed_job_status_Passed {
     vertical-align: middle;
@@ -204,4 +522,17 @@ Slide style
     box-shadow: 2px 2px 3px #888888;
     display: inline-block;
 }
-/* MOOSE Build status CSS */
+
+#moose-markdown-content li {
+  list-style-type: disc;
+  padding-left: 0;
+  margin-left: 15px;
+}
+
+#moose-markdown-content strong {
+  font-weight: bold;
+}
+
+#moose-markdown-content ul.collapsible li {
+  list-style-type: none;
+}

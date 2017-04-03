@@ -8,12 +8,12 @@
 #ifndef POROUSFLOWPERMEABILITYEXPONENTIAL_H
 #define POROUSFLOWPERMEABILITYEXPONENTIAL_H
 
-#include "PorousFlowPermeabilityUnity.h"
+#include "PorousFlowPermeabilityBase.h"
 
-//Forward Declarations
+// Forward Declarations
 class PorousFlowPermeabilityExponential;
 
-template<>
+template <>
 InputParameters validParams<PorousFlowPermeabilityExponential>();
 
 /**
@@ -29,13 +29,13 @@ InputParameters validParams<PorousFlowPermeabilityExponential>();
  * k = B * exp(A * phi)
  * A and B are then converted to AA and BB.
  */
-class PorousFlowPermeabilityExponential : public PorousFlowPermeabilityUnity
+class PorousFlowPermeabilityExponential : public PorousFlowPermeabilityBase
 {
 public:
   PorousFlowPermeabilityExponential(const InputParameters & parameters);
 
 protected:
-  void computeQpProperties();
+  void computeQpProperties() override;
 
   /// Empirical constant A
   const Real _A;
@@ -50,10 +50,13 @@ protected:
   const MaterialProperty<Real> & _porosity_qp;
 
   /// d(quadpoint porosity)/d(PorousFlow variable)
-  const MaterialProperty<std::vector<Real> > & _dporosity_qp_dvar;
+  const MaterialProperty<std::vector<Real>> & _dporosity_qp_dvar;
+
+  /// d(quadpoint porosity)/d(grad(PorousFlow variable))
+  const MaterialProperty<std::vector<RealGradient>> & _dporosity_qp_dgradvar;
 
   /// Name of porosity-permeability relationship
-  const MooseEnum _poroperm_function;
+  const enum PoropermFunction { log_k, ln_k, exp_k } _poroperm_function;
 
   /// Empirical constant AA in k = k_ijk * BB * exp(AA * phi)
   Real _AA;
@@ -62,4 +65,4 @@ protected:
   Real _BB;
 };
 
-#endif //POROUSFLOWPERMEABILITYEXPONENTIAL_H
+#endif // POROUSFLOWPERMEABILITYEXPONENTIAL_H

@@ -26,18 +26,21 @@
 #include "libmesh/mesh_tools.h"
 #include "libmesh/id_types.h"
 
-template<>
-InputParameters validParams<MultiAppCopyTransfer>()
+template <>
+InputParameters
+validParams<MultiAppCopyTransfer>()
 {
   InputParameters params = validParams<MultiAppTransfer>();
-  params.addRequiredParam<VariableName>("variable", "The variable to store the transferred values in.");
+  params.addRequiredParam<VariableName>("variable",
+                                        "The variable to store the transferred values in.");
   params.addRequiredParam<VariableName>("source_variable", "The variable to transfer from.");
-  params.addClassDescription("Copies variables (nonlinear and auxiliary) between multiapps that have identical meshes.");
+  params.addClassDescription(
+      "Copies variables (nonlinear and auxiliary) between multiapps that have identical meshes.");
   return params;
 }
 
-MultiAppCopyTransfer::MultiAppCopyTransfer(const InputParameters & parameters) :
-    MultiAppTransfer(parameters),
+MultiAppCopyTransfer::MultiAppCopyTransfer(const InputParameters & parameters)
+  : MultiAppTransfer(parameters),
     _to_var_name(getParam<VariableName>("variable")),
     _from_var_name(getParam<VariableName>("source_variable"))
 {
@@ -50,21 +53,26 @@ MultiAppCopyTransfer::initialSetup()
 }
 
 void
-MultiAppCopyTransfer::transferDofObject(libMesh::DofObject * to_object, libMesh::DofObject * from_object,
-                                        MooseVariable & to_var, MooseVariable & from_var)
+MultiAppCopyTransfer::transferDofObject(libMesh::DofObject * to_object,
+                                        libMesh::DofObject * from_object,
+                                        MooseVariable & to_var,
+                                        MooseVariable & from_var)
 {
-  if (to_object->n_dofs(to_var.sys().number(), to_var.number()) > 0) // If this variable has dofs at this node
-    for (unsigned int comp = 0; comp < to_object->n_comp(to_var.sys().number(), to_var.number()); ++comp)
+  if (to_object->n_dofs(to_var.sys().number(), to_var.number()) >
+      0) // If this variable has dofs at this node
+    for (unsigned int comp = 0; comp < to_object->n_comp(to_var.sys().number(), to_var.number());
+         ++comp)
     {
       dof_id_type dof = to_object->dof_number(to_var.sys().number(), to_var.number(), comp);
-      dof_id_type from_dof = from_object->dof_number(from_var.sys().number(), from_var.number(), comp);
+      dof_id_type from_dof =
+          from_object->dof_number(from_var.sys().number(), from_var.number(), comp);
       Real from_value = from_var.sys().solution()(from_dof);
       to_var.sys().solution().set(dof, from_value);
     }
 }
 
 void
-MultiAppCopyTransfer::transfer(FEProblem & to_problem, FEProblem & from_problem)
+MultiAppCopyTransfer::transfer(FEProblemBase & to_problem, FEProblemBase & from_problem)
 {
   // Populate the to/from variables needed to perform the transfer
   MooseVariable & to_var = to_problem.getVariable(0, _to_var_name);
@@ -77,7 +85,7 @@ MultiAppCopyTransfer::transfer(FEProblem & to_problem, FEProblem & from_problem)
   if (to_var.feType() != from_var.feType())
     mooseError("The variables must be the same type (order and family).");
 
-  if ( (to_mesh.n_nodes() != from_mesh.n_nodes()) || (to_mesh.n_elem() != from_mesh.n_elem()))
+  if ((to_mesh.n_nodes() != from_mesh.n_nodes()) || (to_mesh.n_elem() != from_mesh.n_elem()))
     mooseError("The meshes must be identical to utilize MultiAppCopyTransfer.");
 
   // Transfer node dofs
@@ -95,7 +103,7 @@ MultiAppCopyTransfer::transfer(FEProblem & to_problem, FEProblem & from_problem)
   {
     to_elem = *elem_it;
     from_elem = from_mesh.elem_ptr(to_elem->id());
-    mooseAssert( to_elem->type() == from_elem->type(), "The elements must be the same type.");
+    mooseAssert(to_elem->type() == from_elem->type(), "The elements must be the same type.");
     transferDofObject(to_elem, from_elem, to_var, from_var);
   }
 
@@ -110,18 +118,18 @@ MultiAppCopyTransfer::execute()
 
   if (_direction == TO_MULTIAPP)
   {
-    FEProblem & from_problem = _multi_app->problem();
+    FEProblemBase & from_problem = _multi_app->problemBase();
     for (unsigned int i = 0; i < _multi_app->numGlobalApps(); i++)
       if (_multi_app->hasLocalApp(i))
-        transfer(_multi_app->appProblem(i), from_problem);
+        transfer(_multi_app->appProblemBase(i), from_problem);
   }
 
   else if (_direction == FROM_MULTIAPP)
   {
-    FEProblem & to_problem = _multi_app->problem();
+    FEProblemBase & to_problem = _multi_app->problemBase();
     for (unsigned int i = 0; i < _multi_app->numGlobalApps(); i++)
       if (_multi_app->hasLocalApp(i))
-        transfer(to_problem, _multi_app->appProblem(i));
+        transfer(to_problem, _multi_app->appProblemBase(i));
   }
 
   _console << "Finished MultiAppCopyTransfer " << name() << std::endl;

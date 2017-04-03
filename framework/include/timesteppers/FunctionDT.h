@@ -20,7 +20,7 @@
 
 class FunctionDT;
 
-template<>
+template <>
 InputParameters validParams<FunctionDT>();
 
 class FunctionDT : public TimeStepper
@@ -57,4 +57,4 @@ protected:
   std::vector<Real> _time_knots;
 };
 
-#endif /* FUNCTIONDT_H_ */
+#endif /* FUNCTIONDT_H */

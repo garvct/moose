@@ -13,7 +13,7 @@
 // Forward Declarations
 class DesorptionFromMatrix;
 
-template<>
+template <>
 InputParameters validParams<DesorptionFromMatrix>();
 
 /**
@@ -23,16 +23,15 @@ InputParameters validParams<DesorptionFromMatrix>();
 class DesorptionFromMatrix : public Kernel
 {
 public:
-
   DesorptionFromMatrix(const InputParameters & parameters);
 
 protected:
-  virtual Real computeQpResidual();
-  virtual Real computeQpJacobian();
-  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
+  virtual Real computeQpResidual() override;
+  virtual Real computeQpJacobian() override;
+  virtual Real computeQpOffDiagJacobian(unsigned int jvar) override;
 
   /// MOOSE internal variable number corresponding to the porepressure (need this of OffDiagJacobian)
-  unsigned int _pressure_var;
+  const unsigned int _pressure_var;
 
   /// mass flow rate from matrix = mass flow rate to porespace
   const MaterialProperty<Real> & _mass_rate_from_matrix;
@@ -44,4 +43,4 @@ protected:
   const MaterialProperty<Real> & _dmass_rate_from_matrix_dp;
 };
 
-#endif //DESORPTIONFROMMATRIX
+#endif // DESORPTIONFROMMATRIX

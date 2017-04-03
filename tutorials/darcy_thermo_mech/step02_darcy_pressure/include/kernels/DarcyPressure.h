@@ -20,7 +20,7 @@
 
 class DarcyPressure;
 
-template<>
+template <>
 InputParameters validParams<DarcyPressure>();
 
 /**
@@ -52,5 +52,4 @@ protected:
   Real _viscosity;
 };
 
-
-#endif /* DARCYPRESSURE_H */
+#endif // DARCYPRESSURE_H

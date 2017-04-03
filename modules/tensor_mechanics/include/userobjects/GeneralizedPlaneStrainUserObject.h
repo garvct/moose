@@ -14,30 +14,32 @@ class RankTwoTensor;
 class RankFourTensor;
 class Function;
 
-template<>
+template <>
 InputParameters validParams<GeneralizedPlaneStrainUserObject>();
 
 class GeneralizedPlaneStrainUserObject : public ElementUserObject
 {
 public:
   GeneralizedPlaneStrainUserObject(const InputParameters & parameters);
-  virtual ~GeneralizedPlaneStrainUserObject() {}
 
-  virtual void initialize();
-  virtual void execute();
-  virtual void threadJoin(const UserObject & uo){};
-  virtual void finalize(){};
+  void initialize() override;
+  void execute() override;
+  void threadJoin(const UserObject & uo) override;
+  void finalize() override;
   virtual Real returnResidual() const;
   virtual Real returnJacobian() const;
 
 protected:
+  std::string _base_name;
+
   const MaterialProperty<RankFourTensor> & _Cijkl;
   const MaterialProperty<RankTwoTensor> & _stress;
 
-  Function & _traction;
+  Function & _out_of_plane_pressure;
   const Real _factor;
 
 private:
+  unsigned int _scalar_out_of_plane_strain_direction;
   Real _residual;
   Real _jacobian;
 };

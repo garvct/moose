@@ -12,7 +12,7 @@
 // Forward Declaration
 class PrimaryConvection;
 
-template<>
+template <>
 InputParameters validParams<PrimaryConvection>();
 
 /**
@@ -25,9 +25,8 @@ public:
   PrimaryConvection(const InputParameters & parameters);
 
 protected:
-  virtual Real computeQpResidual();
-  virtual Real computeQpJacobian();
-  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
+  virtual Real computeQpResidual() override;
+  virtual Real computeQpJacobian() override;
 
   /// Material property of hydraulic conductivity
   const MaterialProperty<Real> & _cond;
@@ -37,4 +36,4 @@ private:
   const VariableGradient & _grad_p;
 };
 
-#endif //PRIMARYCONVECTION_H
+#endif // PRIMARYCONVECTION_H

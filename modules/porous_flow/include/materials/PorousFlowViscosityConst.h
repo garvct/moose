@@ -12,7 +12,7 @@
 
 class PorousFlowViscosityConst;
 
-template<>
+template <>
 InputParameters validParams<PorousFlowViscosityConst>();
 
 /**
@@ -24,7 +24,7 @@ public:
   PorousFlowViscosityConst(const InputParameters & parameters);
 
 protected:
-  virtual void computeQpProperties();
+  virtual void computeQpProperties() override;
 
   /// constant value of viscosity
   const Real _input_viscosity;
@@ -33,4 +33,4 @@ protected:
   MaterialProperty<Real> & _viscosity;
 };
 
-#endif //POROUSFLOWVISCOSITYCONST_H
+#endif // POROUSFLOWVISCOSITYCONST_H

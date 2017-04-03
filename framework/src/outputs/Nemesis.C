@@ -21,11 +21,12 @@
 // libMesh includes
 #include "libmesh/nemesis_io.h"
 
-template<>
-InputParameters validParams<Nemesis>()
+template <>
+InputParameters
+validParams<Nemesis>()
 {
   // Get the base class parameters
-  InputParameters params = validParams<AdvancedOutput<OversampleOutput> >();
+  InputParameters params = validParams<AdvancedOutput<OversampleOutput>>();
   params += AdvancedOutput<OversampleOutput>::enableOutputTypes("scalar postprocessor input");
 
   // Add description for the Nemesis class
@@ -35,20 +36,16 @@ InputParameters validParams<Nemesis>()
   return params;
 }
 
-Nemesis::Nemesis(const InputParameters & parameters) :
-    AdvancedOutput<OversampleOutput>(parameters),
-    _nemesis_io_ptr(NULL),
+Nemesis::Nemesis(const InputParameters & parameters)
+  : AdvancedOutput<OversampleOutput>(parameters),
+    _nemesis_io_ptr(nullptr),
     _file_num(0),
     _nemesis_num(0),
     _nemesis_initialized(false)
 {
 }
 
-Nemesis::~Nemesis()
-{
-  // Clean up the libMesh::NemesisII_IO object
-  delete _nemesis_io_ptr;
-}
+Nemesis::~Nemesis() {}
 
 void
 Nemesis::initialSetup()
@@ -68,12 +65,8 @@ Nemesis::meshChanged()
 
   // Do not delete the Nemesis_IO object if it has not been used; also there is no need to setup
   // the object in this case, so just return
-  if (_nemesis_io_ptr != NULL && !_nemesis_initialized)
+  if (_nemesis_io_ptr != nullptr && !_nemesis_initialized)
     return;
-
-  // Delete existing NemesisII_IO objects
-  if (_nemesis_io_ptr != NULL)
-    delete _nemesis_io_ptr;
 
   // Increment the file number
   _file_num++;
@@ -82,9 +75,8 @@ Nemesis::meshChanged()
   _nemesis_num = 1;
 
   // Create the new NemesisIO object
-  _nemesis_io_ptr = new Nemesis_IO(_mesh_ptr->getMesh());
+  _nemesis_io_ptr = libmesh_make_unique<Nemesis_IO>(_mesh_ptr->getMesh());
   _nemesis_initialized = false;
-
 }
 
 void
@@ -149,7 +141,8 @@ Nemesis::output(const ExecFlagType & type)
   AdvancedOutput<OversampleOutput>::output(type);
 
   // Write the data
-  _nemesis_io_ptr->write_timestep(filename(), *_es_ptr, _nemesis_num, time() + _app.getGlobalTimeOffset());
+  _nemesis_io_ptr->write_timestep(
+      filename(), *_es_ptr, _nemesis_num, time() + _app.getGlobalTimeOffset());
   _nemesis_initialized = true;
 
   // Increment output call counter for the current file
@@ -165,18 +158,13 @@ Nemesis::filename()
 {
   // Append the .e extension on the base file name
   std::ostringstream output;
-  output << _file_base << ".e" ;
+  output << _file_base << ".e";
 
   // Add the _000x extension to the file
   if (_file_num > 1)
-    output << "-s"
-           << std::setw(_padding)
-           << std::setprecision(0)
-           << std::setfill('0')
-           << std::right
+    output << "-s" << std::setw(_padding) << std::setprecision(0) << std::setfill('0') << std::right
            << _file_num;
 
   // Return the filename
   return output.str();
-
 }

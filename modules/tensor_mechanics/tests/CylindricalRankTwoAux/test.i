@@ -82,17 +82,19 @@
     type = ComputeSmallStrain
     displacements = 'disp_x disp_y'
     block = 1
+    eigenstrain_names = eigenstrain
   [../]
   [./stress]
     type = ComputeLinearElasticStress
     block = 1
   [../]
   [./thermal_strain]
-    type= ComputeThermalExpansionEigenStrain
+    type= ComputeThermalExpansionEigenstrain
     thermal_expansion_coeff = 1e-6
     temperature = T
     stress_free_temperature = 273
     block = 1
+    eigenstrain_name = eigenstrain
   [../]
 []
 

@@ -11,7 +11,6 @@
 
 [GlobalParams]
   displacements = 'disp_x disp_y disp_z'
-  block = 0
 []
 
 [Mesh]
@@ -128,11 +127,10 @@
   [../]
 
   [./power_law_hardening]
-    type = RecomputeRadialReturnIsotropicPowerLawHardening
+    type = IsotropicPowerLawHardeningStressUpdate
     strength_coefficient = 0.5 #K
     strain_hardening_exponent = 0.5 #n
     output_iteration_info_on_error = true
-    compute = false # make this material "discrete"
     relative_tolerance = 1e-10
     absolute_tolerance = 1e-12
     max_iterations = 50
@@ -147,10 +145,7 @@
 
 [Executioner]
   type = Transient
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
 
   petsc_options = '-ksp_snes_ew'
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
@@ -158,7 +153,6 @@
 
 
   line_search = 'none'
-
 
   l_max_its = 100
   nl_max_its = 100

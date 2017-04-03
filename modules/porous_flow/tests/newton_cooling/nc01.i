@@ -47,9 +47,9 @@
   [./temperature]
     type = PorousFlowTemperature
   [../]
-  [./nnn]
-    type = PorousFlowNodeNumber
-    on_initial_only = true
+  [./temperature_nodal]
+    type = PorousFlowTemperature
+    at_nodes = true
   [../]
   [./ppss]
     type = PorousFlow1PhaseP_VG # irrelevant in this fully-saturated situation
@@ -57,27 +57,44 @@
     m = 0.8
     al = 1E-5
   [../]
+  [./ppss_nodal]
+    type = PorousFlow1PhaseP_VG # irrelevant in this fully-saturated situation
+    at_nodes = true
+    porepressure = pressure
+    m = 0.8
+    al = 1E-5
+  [../]
   [./massfrac]
     type = PorousFlowMassFraction
+    at_nodes = true
   [../]
   [./dens0]
     type = PorousFlowDensityConstBulk
+    at_nodes = true
     density_P0 = 1000
     bulk_modulus = 1.0E6
     phase = 0
   [../]
   [./dens_all]
     type = PorousFlowJoiner
+    at_nodes = true
     include_old = true
-    material_property = PorousFlow_fluid_phase_density
+    material_property = PorousFlow_fluid_phase_density_nodal
+  [../]
+  [./dens0_qp]
+    type = PorousFlowDensityConstBulk
+    density_P0 = 1000
+    bulk_modulus = 1.0E6
+    phase = 0
   [../]
   [./dens_all_at_quadpoints]
     type = PorousFlowJoiner
     material_property = PorousFlow_fluid_phase_density_qp
-    at_qps = true
+    at_nodes = false
   [../]
   [./porosity]
     type = PorousFlowPorosityConst
+    at_nodes = true
     porosity = 0.1
   [../]
   [./permeability]
@@ -86,21 +103,25 @@
   [../]
   [./relperm]
     type = PorousFlowRelativePermeabilityCorey # irrelevant in this fully-saturated situation
-    n_j = 2
+    at_nodes = true
+    n = 2
     phase = 0
   [../]
   [./relperm_all]
     type = PorousFlowJoiner
-    material_property = PorousFlow_relative_permeability
+    at_nodes = true
+    material_property = PorousFlow_relative_permeability_nodal
   [../]
   [./visc0]
     type = PorousFlowViscosityConst
+    at_nodes = true
     viscosity = 1E-3
     phase = 0
   [../]
   [./visc_all]
     type = PorousFlowJoiner
-    material_property = PorousFlow_viscosity
+    at_nodes = true
+    material_property = PorousFlow_viscosity_nodal
   [../]
 []
 
@@ -115,7 +136,7 @@
     type = PorousFlowPiecewiseLinearSink
     variable = pressure
     boundary = right
-    pressures = '0 100000 200000 300000 400000 500000 600000 700000 800000 900000 1000000 1100000 1200000 1300000 1400000 1500000 1600000 1700000 1800000 1900000 2000000'
+    pt_vals = '0 100000 200000 300000 400000 500000 600000 700000 800000 900000 1000000 1100000 1200000 1300000 1400000 1500000 1600000 1700000 1800000 1900000 2000000'
     multipliers = '0. 5.6677197748570516e-6 0.000011931518841831313 0.00001885408740732065 0.000026504708864284114 0.000034959953203725676 0.000044304443352900224 0.00005463170211001232 0.00006604508815181467 0.00007865883048198513 0.00009259917167338928 0.00010800563134618119 0.00012503240252705603 0.00014384989486488752 0.00016464644014777016 0.00018763017719085535 0.0002130311349595711 0.00024110353477682344 0.00027212833465544285 0.00030641604122040985 0.00034430981736352295'
     use_mobility = false
     use_relperm = false

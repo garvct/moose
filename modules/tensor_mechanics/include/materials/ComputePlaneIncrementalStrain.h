@@ -19,11 +19,16 @@ public:
   ComputePlaneIncrementalStrain(const InputParameters & parameters);
 
 protected:
-  virtual Real computeDeformGradZZ();
-  virtual Real computeDeformGradZZold();
+  virtual Real computeGradDispZZ();
+  virtual Real computeGradDispZZOld();
 
-  const VariableValue & _scalar_strain_zz;
-  const VariableValue & _scalar_strain_zz_old;
+  const bool _scalar_out_of_plane_strain_coupled;
+  const VariableValue & _scalar_out_of_plane_strain;
+  const VariableValue & _scalar_out_of_plane_strain_old;
+
+  const bool _out_of_plane_strain_coupled;
+  const VariableValue & _out_of_plane_strain;
+  const VariableValue & _out_of_plane_strain_old;
 };
 
-#endif //COMPUTEPLANEINCREMENTALSTRAIN_H
+#endif // COMPUTEPLANEINCREMENTALSTRAIN_H

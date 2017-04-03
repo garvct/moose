@@ -22,18 +22,17 @@
 #include <string>
 
 class Steady;
-class FEProblem;
+class FEProblemBase;
 
-template<>
+template <>
 InputParameters validParams<Steady>();
 
 /**
  * Steady executioners usually only call "solve()" on the NonlinearSystem once.
  */
-class Steady: public Executioner
+class Steady : public Executioner
 {
 public:
-
   /**
    * Constructor
    *
@@ -49,10 +48,10 @@ public:
   virtual void checkIntegrity();
 
 protected:
-  FEProblem & _problem;
+  FEProblemBase & _problem;
 
   int & _time_step;
   Real & _time;
 };
 
-#endif //STEADY_H
+#endif // STEADY_H

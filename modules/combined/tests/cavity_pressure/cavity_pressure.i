@@ -25,7 +25,7 @@
 #   V0 = 7
 #   n0 = f(p0)
 #   p0 = 100
-#   R = 8.314472 J * K^(−1) * mol^(−1)
+#   R = 8.314472 J * K^(-1) * mol^(-1)
 #
 # So, n0 = p0 * V0 / R / T0 = 100 * 7 / 8.314472 / 240.544439
 #        = 0.35
@@ -41,6 +41,10 @@
 
 [Mesh]
   file = cavity_pressure.e
+[]
+
+[GlobalParams]
+  volumetric_locking_correction=true
 []
 
 [Functions]

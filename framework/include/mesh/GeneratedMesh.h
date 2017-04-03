@@ -19,7 +19,7 @@
 
 class GeneratedMesh;
 
-template<>
+template <>
 InputParameters validParams<GeneratedMesh>();
 
 /**
@@ -35,8 +35,9 @@ public:
   GeneratedMesh & operator=(const GeneratedMesh & other_mesh) = delete;
 
   virtual MooseMesh & clone() const override;
-
   virtual void buildMesh() override;
+  virtual Real getMinInDimension(unsigned int component) const override;
+  virtual Real getMaxInDimension(unsigned int component) const override;
 
 protected:
   /// The dimension of the mesh

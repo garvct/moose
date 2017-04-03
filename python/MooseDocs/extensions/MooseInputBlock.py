@@ -11,7 +11,8 @@ class MooseInputBlock(MooseTextPatternBase):
     CPP_RE = r'^!input\s+(.*?)(?:$|\s+)(.*)'
 
     def __init__(self, **kwargs):
-        super(MooseInputBlock, self).__init__(self.CPP_RE, language='text', **kwargs)
+        MooseTextPatternBase.__init__(self, self.CPP_RE, language='text', **kwargs)
+        self._settings['block'] = None
 
     def handleMatch(self, match):
         """
@@ -19,32 +20,26 @@ class MooseInputBlock(MooseTextPatternBase):
         """
 
         # Update the settings from regex match
-        settings, styles = self.getSettings(match.group(3))
+        settings = self.getSettings(match.group(3))
 
         # Build the complete filename.
-        # NOTE: os.path.join doesn't like the unicode even if you call str() on it first.
-        rel_filename = match.group(2).lstrip('/')
-        filename = MooseDocs.MOOSE_DIR.rstrip('/') + os.path.sep + rel_filename
+        rel_filename = match.group(2)
+        filename = MooseDocs.abspath(rel_filename)
 
         # Read the file and create element
-        filename = self.checkFilename(rel_filename)
-        if not filename:
-            el = self.createErrorElement(rel_filename)
-        elif not settings.has_key('block'):
-            el = self.createErrorElement(rel_filename, message="Use of !input syntax while not providing a block=some_block. If you wish to include the entire file, use !text instead")
+        if not os.path.exists(filename):
+            el = self.createErrorElement("The input file was not located: {}".format(rel_filename))
+        elif settings['block'] is None:
+            el = self.createErrorElement("Use of !input syntax while not providing a block=some_block. If you wish to include the entire file, use !text instead")
         else:
             parser = ParseGetPot(filename)
             node = parser.root_node.getNode(settings['block'])
 
             if node == None:
-                content = 'ERROR: Failed to find {} in {}.'.format(match.group(2), rel_filename)
+                el = self.createErrorElement('Failed to find {} in {}.'.format(settings['block'], rel_filename))
             else:
                 content = node.createString()
-
-            if match.group(2):
-                label = match.group(2)
-            else:
-                label = rel_filename
-            el = self.createElement(label, content, filename, rel_filename, settings, styles)
+                label = match.group(2) if match.group(2) else rel_filename
+                el = self.createElement(label, content, filename, rel_filename, settings)
 
         return el

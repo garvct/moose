@@ -58,6 +58,28 @@
   [../]
 []
 
+[BCs]
+  # necessary otherwise volumetric strain rate will be zero
+  [./disp_x]
+    type = PresetBC
+    variable = disp_x
+    value = 0
+    boundary = 'left right'
+  [../]
+  [./disp_y]
+    type = PresetBC
+    variable = disp_y
+    value = 0
+    boundary = 'left right'
+  [../]
+  [./disp_z]
+    type = PresetBC
+    variable = disp_z
+    value = 0
+    boundary = 'left right'
+  [../]
+[]
+
 [Kernels]
   [./grad_stress_x]
     type = StressDivergenceTensors
@@ -97,10 +119,7 @@
 [Materials]
   [./temperature]
     type = PorousFlowTemperature
-  [../]
-  [./nnn]
-    type = PorousFlowNodeNumber
-    on_initial_only = true
+    at_nodes = true
   [../]
   [./elasticity_tensor]
     type = ComputeElasticityTensor
@@ -116,35 +135,42 @@
 
   [./vol_strain]
     type = PorousFlowVolumetricStrain
+    at_nodes = false
   [../]
-  [./ppss]
+  [./ppss_nodal]
     type = PorousFlow1PhaseP_VG
     porepressure = porepressure
+    at_nodes = true
     al = 1
     m = 0.5
   [../]
   [./massfrac]
     type = PorousFlowMassFraction
+    at_nodes = true
   [../]
   [./dens0]
     type = PorousFlowDensityConstBulk
+    at_nodes = true
     density_P0 = 1
     bulk_modulus = 1.5
     phase = 0
   [../]
   [./dens_all]
     type = PorousFlowJoiner
-    include_old = true
-    material_property = PorousFlow_fluid_phase_density
+    include_old = false
+    at_nodes = true
+    material_property = PorousFlow_fluid_phase_density_nodal
   [../]
   [./porosity]
     type = PorousFlowPorosityHM
+    at_nodes = true
     porosity_zero = 0.1
     biot_coefficient = 0.5
     solid_bulk = 1
   [../]
   [./p_eff]
     type = PorousFlowEffectiveFluidPressure
+    at_nodes = true
   [../]
 []
 

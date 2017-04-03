@@ -16,6 +16,10 @@
   [../]
 []
 
+[GlobalParams]
+  volumetric_locking_correction = true
+[]
+
 [AuxVariables]
   [./stress_yy]
     order = CONSTANT
@@ -252,10 +256,3 @@
     use_displaced_mesh = true
   [../]
 []
-
-[Problem]
-  use_legacy_uo_initialization = false
-[]
-
-
-

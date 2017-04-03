@@ -14,8 +14,9 @@
 
 #include "DarcyVelocity.h"
 
-template<>
-InputParameters validParams<DarcyVelocity>()
+template <>
+InputParameters
+validParams<DarcyVelocity>()
 {
   InputParameters params = validParams<AuxKernel>();
 
@@ -34,8 +35,8 @@ InputParameters validParams<DarcyVelocity>()
   return params;
 }
 
-DarcyVelocity::DarcyVelocity(const InputParameters & parameters) :
-    AuxKernel(parameters),
+DarcyVelocity::DarcyVelocity(const InputParameters & parameters)
+  : AuxKernel(parameters),
 
     // This will automatically convert the MooseEnum to an integer
     _component(getParam<MooseEnum>("component")),
@@ -60,5 +61,5 @@ DarcyVelocity::computeValue()
   // Then pull out the "component" of it we are looking for (x, y or z)
   // Note that getting a particular component of a gradient is done using the
   // parenthesis operator
-  return -(_permeability[_qp]/_viscosity[_qp])*_pressure_gradient[_qp](_component);
+  return -(_permeability[_qp] / _viscosity[_qp]) * _pressure_gradient[_qp](_component);
 }

@@ -2,94 +2,36 @@ import os
 import sys
 import glob
 import re
-import mkdocs
 import livereload
+import multiprocessing
 import logging
 import shutil
 import MooseDocs
 import build
 log = logging.getLogger(__name__)
 
-
-def touch(fname, times=None):
+def serve_options(parser, subparser):
     """
-    A touch command to trigger reloading parent of nested files.
-
-    http://stackoverflow.com/questions/1158076/implement-touch-using-python
-    """
-    with open(fname, 'a'):
-        os.utime(fname, times)
-
-class MooseDocsWatcher(livereload.watcher.Watcher):
-    """
-    Custom watcher for recursive directory watching and nested markdown files.
+    Command-line options for serve command.
     """
 
-    def is_glob_changed(self, path, ignore=None):
-        """
-        Implement a recursive glob, which is only available in python 3.5.
-        """
+    serve_parser = subparser.add_parser('serve', help='Serve the documentation using a local server.')
+    serve_parser.add_argument('--host', default='127.0.0.1', type=str, help="The local host location for live web server (default: %(default)s).")
+    serve_parser.add_argument('--port', default='8000', type=str, help="The local host port for live web server (default: %(default)s).")
+    serve_parser.add_argument('--num-threads', '-j', type=int, default=multiprocessing.cpu_count(), help="Specify the number of threads to build pages with.")
 
-        if sys.version < (3, 5) and '**' in path:
-            start, wildcard = path.split('**', 1)
-            for root, dirnames, filenames in os.walk(start):
-                for name in dirnames:
-                    for f in glob.glob(os.path.join(root, name, wildcard.strip(os.path.sep))):
-                        if self.is_file_changed(f, ignore):
-                            return True
-                return False
-            else:
-                return super(MkDocsWatcher, self).is_glob_changed(path, ignore)
+    return serve_parser
 
-    def is_file_changed(self, path, ignore=None):
-        """
-        Implements examining nested files.
-        """
-        with open(path) as fid:
-            content = fid.read()
-            for match in re.finditer(r'\{!(.*?)!\}', content):
-                subpage = match.group(1)
-                if os.path.exists(subpage):
-                    if self.is_file_changed(subpage, ignore):
-                        touch(path)
-                        return True
-        return super(MooseDocsWatcher, self).is_file_changed(path, ignore)
-
-
-def _livereload(host, port, config, builder, site_dir):
+def serve(config_file='moosedocs.yml', host='127.0.0.1', port='8000', num_threads=multiprocessing.cpu_count()):
     """
-    Mimics the mkdocs.commands.serve._livereload function.
-
-    @TODO: When the mkdocs plugin system allows for custom Watcher this should be removed.
-    """
-
-    # We are importing here for anyone that has issues with livereload. Even if
-    # this fails, the --no-livereload alternative should still work.
-    from livereload import Server
-
-    watcher = MooseDocsWatcher()
-    server = livereload.Server(None, watcher)
-
-    # Watch the documentation files, the config file and the theme files.
-    server.watch(config['docs_dir'], builder)
-    server.watch(config['config_file_path'], builder)
-
-    for d in config['theme_dir']:
-        server.watch(d, builder)
-
-    server.serve(root=site_dir, host=host, port=int(port), restart_delay=0)
-
-
-def serve(config_file='mkdocs.yml', strict=None, livereload='dirtyreload', clean=True, pages='pages.yml', page_keys=[], **kwargs):
-    """
-    Mimics mkdocs serve command.
+    Create live server
     """
 
     # Location of serve site
     tempdir = os.path.abspath(os.path.join(os.getenv('HOME'), '.local', 'share', 'moose', 'site'))
 
     # Clean the "temp" directory (if desired)
-    if clean and os.path.exists(tempdir):
+    if os.path.exists(tempdir):
         log.info('Cleaning build directory: {}'.format(tempdir))
         shutil.rmtree(tempdir)
 
@@ -97,21 +39,34 @@ def serve(config_file='mkdocs.yml', strict=None, livereload='dirtyreload', clean
     if not os.path.exists(tempdir):
         os.makedirs(tempdir)
 
-    def builder(**kwargs):
-        clean = kwargs.pop('clean', livereload != 'dirtyreload')
-        live_server = livereload in ['dirtyreload', 'livereload']
-        config = build.build(live_server=live_server, site_dir=tempdir,  pages=pages, page_keys=page_keys, clean_site_dir=clean, **kwargs)
-        return config
-
     # Perform the initial build
     log.info("Building documentation...")
-    config = builder(clean=clean, **kwargs)
-    host, port = config['dev_addr'].split(':', 1)
 
-    try:
-        if livereload in ['livereload', 'dirtyreload']:
-            _livereload(host, port, config, builder, tempdir)
-        else:
-            mkdocs.commands.serve._static_server(host, port, tempdir)
-    finally:
-        log.info("Finished serving local site.")
+    # Wrapper for building complete website
+    def build_complete():
+        return build.build_site(config_file=config_file, site_dir=tempdir, num_threads=num_threads)
+    config, parser, builder = build_complete()
+
+    # Create the live server
+    server = livereload.Server()
+
+    # Watch markdown files
+    for page in builder:
+        server.watch(page.source(), page.build)
+
+    # Watch support directories
+    server.watch(os.path.join(os.getcwd(), 'media'), builder.copyFiles)
+    server.watch(os.path.join(os.getcwd(), 'css'), builder.copyFiles)
+    server.watch(os.path.join(os.getcwd(), 'js'), builder.copyFiles)
+    server.watch(os.path.join(os.getcwd(), 'fonts'), builder.copyFiles)
+
+    # Watch the files and directories that require complete rebuild
+    moose_extension = MooseDocs.get_moose_markdown_extension(parser)
+    if moose_extension:
+        server.watch(os.path.join(os.getcwd(), moose_extension.getConfig('executable')), build_complete)
+    server.watch(config_file, build_complete)
+    server.watch(config['navigation'], builder.build)
+    server.watch('templates', builder.build)
+
+    # Start the server
+    server.serve(root=config['site_dir'], host=host, port=port, restart_delay=0)

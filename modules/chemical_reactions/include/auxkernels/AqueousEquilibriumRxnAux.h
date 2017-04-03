@@ -9,10 +9,10 @@
 
 #include "AuxKernel.h"
 
-//Forward Declarations
+// Forward Declarations
 class AqueousEquilibriumRxnAux;
 
-template<>
+template <>
 InputParameters validParams<AqueousEquilibriumRxnAux>();
 
 /**
@@ -27,20 +27,16 @@ public:
   virtual ~AqueousEquilibriumRxnAux() {}
 
 protected:
-  /**
-   * Computes the equilibrium sepecies concentration.
-   * @return The concentration of an equilibrium species.
-   */
-  virtual Real computeValue();
+  virtual Real computeValue() override;
 
   /// Equilibrium constant
-  Real _log_k;
+  const Real _log_k;
 
-  /// Stochiometric coefficients for coupled primary species
-  std::vector<Real> _sto_v;
+  /// Stoichiometric coefficients for coupled primary species
+  const std::vector<Real> _sto_v;
 
   /// Coupled primary species
-  std::vector<const VariableValue *>  _vals;
+  std::vector<const VariableValue *> _vals;
 };
 
-#endif //AQUEOUSEQUILIBRIUMRXNAUX_H
+#endif // AQUEOUSEQUILIBRIUMRXNAUX_H

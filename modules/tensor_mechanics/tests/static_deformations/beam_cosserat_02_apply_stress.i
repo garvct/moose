@@ -47,7 +47,7 @@
 []
 
 [GlobalParams]
-  use_displaced_mesh = false
+  #use_displaced_mesh = false
   displacements = 'disp_x disp_y disp_z'
   Cosserat_rotations = 'wc_x wc_y wc_z'
 []
@@ -468,7 +468,7 @@
   [./soln]
     type = LineValueSampler
     sort_by = x
-    variable = 'disp_x disp_y disp_z stress_xx stress_xy stress_xz stress_yx stress_yy stress_yz stress_zx stress_zx stress_zz wc_x wc_y wc_z couple_stress_xx couple_stress_xy couple_stress_xz couple_stress_yx couple_stress_yy couple_stress_yz couple_stress_zx couple_stress_zy couple_stress_zz'
+    variable = 'disp_x disp_y disp_z stress_xx stress_xy stress_xz stress_yx stress_yy stress_yz stress_zx stress_zy stress_zz wc_x wc_y wc_z couple_stress_xx couple_stress_xy couple_stress_xz couple_stress_yx couple_stress_yy couple_stress_yz couple_stress_zx couple_stress_zy couple_stress_zz'
     start_point = '0 0 0.5'
     end_point = '10 0 0.5'
     num_points = 11

@@ -1,67 +1,211 @@
-###############################################################
-# Configuration for creating MOOSE application documentation. #
-###############################################################
+template: website.html
 
-# MkDocs Settings
-# The settings in this section are for MkDocs, asny MkDocs settings can be set via this file.
-site_name: MOOSE
-
-docs_dir: .
-
-site_dir: ../site
-
-repo_url: https://github.com/idaholab/moose/
-
-theme: flatly
-
-extra_css:
-    - css/moose.css
-
-extra_javascript:
-    - http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML
-    - js/mathjaxconfig.js
+template_arguments:
+    title: MOOSE
+    logo: ../media/moose_logo_small.png
+    repo_url: https://github.com/idaholab/moose/
 
 markdown_extensions:
     - toc
     - smarty
     - admonition
-    - markdown_include.include           # pip install markdown-include
-    - mdx_math                           # pip install python-markdown-math
+    - extra
+    - markdown_include.include:
+          base_path: ..
+    - mdx_math:
+        enable_dollar_delimiter: True
     - MooseDocs.extensions.MooseMarkdown:
           package: True
-          make: ../modules
-          executable: ../modules/combined/modules-opt
+          executable: modules/combined/combined-opt
           repo: https://github.com/idaholab/moose/blob/master
+          install: docs/content/documentation/systems
           links:
               Tests:
-                  - ../test
-                  - ../modules/phase_field/tests
-                  - ../modules/tensor_mechanics/tests
+                  - test/tests
+                  - modules/phase_field/tests
+                  - modules/tensor_mechanics/tests
+                  - modules/heat_conduction/tests
+                  - modules/level_set/tests
               Examples:
-                  - ../examples
-                  - ../modules/phase_field/examples
+                  - examples
+                  - modules/phase_field/examples
+                  - modules/combined/examples
+                  - modules/level_set/examples
               Tutorials:
-                  - ../tutorials
-                  - ../modules/tensor_mechanics/tutorials
+                  - tutorials
+                  - modules/tensor_mechanics/tutorials
               Source:
-                  - ../modules/heat_conduction/include
-                  - ../modules/tensor_mechanics/include
+                  - modules/phase_field/include
+                  - modules/tensor_mechanics/include
+                  - modules/heat_conduction/include
+                  - modules/level_set/include
           locations:
-              framework:
-                  doxygen: http://mooseframework.com/docs/doxygen/moose/
+              - framework:
+                  doxygen: http://mooseframework.org/docs/doxygen/moose/
                   paths:
-                      - ../framework/src
-                      - ../framework/include
-                  install: content/framework/systems
-              tensor_mechanics:
+                      - framework/src
+                      - framework/include
+                  hide:
+                      - /AuxVariables/*/InitialCondition/
+                      - /Variables/*/InitialCondition/
+                      - /Bounds
+                      - /Adaptivity/Indicators
+                      - /AuxKernels
+                      - /AuxScalarKernels
+                      - /AuxVariables
+                      - /BCs
+                      - /Constraints
+                      - /Controls
+                      - /DGKernels
+                      - /Dampers
+                      - /Debug
+                      - /DeprecatedBlock
+                      - /DiracKernels
+                      - /Executioner
+                      - /Functions
+                      - /GlobalParams
+                      - /ICs
+                      - /InterfaceKernels
+                      - /Kernels
+                      - /Materials
+                      - /Mesh/Partitioner
+                      - /Mesh/MortarInterfaces
+                      - /MeshModifiers
+                      - /MultiApps
+                      - /NodalKernels
+                      - /NodalNormals
+                      - /Outputs
+                      - /Postprocessors
+                      - /Preconditioning
+                      - /Problem
+                      - /ScalarKernels
+                      - /Transfers
+                      - /Variables
+                      - /VectorPostprocessors
+                      - /UserObjects
+              - phase_field:
                   doxygen: http://mooseframework.org/docs/doxygen/modules/
                   paths:
-                      - ../modules/tensor_mechanics/src
-                      - ../modules/tensor_mechanics/include
-                  install: content/modules/tensor_mechanics/systems
-              heat_conduction:
+                      - modules/phase_field/src
+                      - modules/phase_field/include
+                  hide:
+                      - /Kernels/PFFracIntVar # deprecated
+                      - /AuxVariables/*/InitialCondition
+                      - /Variables/*/InitialCondition
+                      - /Bounds
+                      - /AuxKernels
+                      - /AuxVariables
+                      - /BCs
+                      - /ICs
+                      - /Kernels
+                      - /Materials
+                      - /Mesh
+                      - /Modules
+                      - /Postprocessors
+                      - /UserObjects
+                      - /Variables
+                      - /VectorPostprocessors
+                      - /InterfaceKernels
+              - tensor_mechanics:
                   doxygen: http://mooseframework.org/docs/doxygen/modules/
                   paths:
-                      - ../modules/heat_conduction/src
-                      - ../modules/heat_conduction/include
-                  install: content/modules/heat_conduction/systems
+                      - modules/tensor_mechanics/src
+                      - modules/tensor_mechanics/include
+                  hide:
+                      - /AuxVariables/*/InitialCondition/
+                      - /Variables/*/InitialCondition/
+                      - /Bounds
+                      - /AuxKernels
+                      - /BCs
+                      - /Kernels
+                      - /Materials
+                      - /Postprocessors
+                      - /ScalarKernels
+                      - /UserObjects
+                      - /VectorPostprocessors
+              - heat_conduction:
+                  doxygen: http://mooseframework.org/docs/doxygen/modules/
+                  paths:
+                      - modules/heat_conduction/src
+                      - modules/heat_conduction/include
+                  hide:
+                      - /AuxVariables/*/InitialCondition/
+                      - /Variables/*/InitialCondition/
+                      - /Bounds
+                      - /BCs
+                      - /Constraints
+                      - /DiracKernels
+                      - /Kernels
+                      - /Materials
+                      - /Modules
+                      - /Postprocessors
+                      - /UserObjects
+                      - /ThermalContact
+              - rdg:
+                  name: rDG
+                  doxygen: http://mooseframework.org/docs/doxygen/modules/
+                  paths:
+                      - modules/rdg/src
+                      - modules/rdg/include
+                  hide:
+                      - /AuxVariables/*/InitialCondition/
+                      - /Variables/*/InitialCondition/
+                      - /Bounds
+                      - /BCs
+                      - /DGKernels
+                      - /Materials
+                      - /UserObjects
+              - navier_stokes:
+                  name: Navier-Stokes
+                  doxygen: http://mooseframework.org/docs/doxygen/modules/
+                  paths:
+                      - modules/navier_stokes/src
+                      - modules/navier_stokes/include
+                  hide:
+                      - /AuxVariables/*/InitialCondition/
+                      - /Variables/*/InitialCondition/
+                      - /AuxKernels
+                      - /BCs
+                      - /Bounds
+                      - /DGKernels
+                      - /Functions
+                      - /ICs
+                      - /Kernels
+                      - /Materials
+                      - /Postprocessors
+                      - /UserObjects
+                      - /Modules
+              - level_set:
+                  doxygen: http://mooseframework.org/docs/doxygen/modules/
+                  paths:
+                      - modules/level_set/src
+                      - modules/level_set/include
+                  hide:
+                      - /UserObjects/LevelSetCFLCondition
+                      - /UserObjects/LevelSetVolume
+                      - /Modules
+              - porous_flow:
+                  doxygen: http://mooseframework.org/docs/doxygen/modules/
+                  paths:
+                      - modules/porous_flow/src
+                      - modules/porous_flow/include
+                  hide:
+                      - /Bounds
+                      - /Modules
+                      - /UserObjects
+                      - /Kernels
+                      - /Materials
+                      - /Postprocessors
+                      - /AuxKernels
+                      - /BCs
+                      - /DiracKernels
+                      - /Functions
+              - stochastic_tools:
+                  doxygen: http://mooseframework.org/docs/doxygen/modules/
+                  paths:
+                      - modules/stochastic_tools/src
+                      - modules/stochastic_tools/include
+                  hide:
+                      - /Modules
+                      - /UserObjects
+                      - /Postprocessors

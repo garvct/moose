@@ -14,7 +14,7 @@
 
 #include "ComputeDiracThread.h"
 
-//Moose Includes
+// Moose Includes
 #include "ParallelUniqueId.h"
 #include "DiracKernel.h"
 #include "Problem.h"
@@ -26,26 +26,24 @@
 // libmesh includes
 #include "libmesh/threads.h"
 
-ComputeDiracThread::ComputeDiracThread(FEProblem & feproblem,
-                                       SparseMatrix<Number> * jacobian) :
-    ThreadedElementLoop<DistElemRange>(feproblem),
+ComputeDiracThread::ComputeDiracThread(FEProblemBase & feproblem, SparseMatrix<Number> * jacobian)
+  : ThreadedElementLoop<DistElemRange>(feproblem),
     _jacobian(jacobian),
-    _nl(feproblem.getNonlinearSystem()),
+    _nl(feproblem.getNonlinearSystemBase()),
     _dirac_kernels(_nl.getDiracKernelWarehouse())
-{}
+{
+}
 
 // Splitting Constructor
-ComputeDiracThread::ComputeDiracThread(ComputeDiracThread & x, Threads::split split) :
-    ThreadedElementLoop<DistElemRange>(x, split),
+ComputeDiracThread::ComputeDiracThread(ComputeDiracThread & x, Threads::split split)
+  : ThreadedElementLoop<DistElemRange>(x, split),
     _jacobian(x._jacobian),
     _nl(x._nl),
     _dirac_kernels(x._dirac_kernels)
 {
 }
 
-ComputeDiracThread::~ComputeDiracThread()
-{
-}
+ComputeDiracThread::~ComputeDiracThread() {}
 
 void
 ComputeDiracThread::pre()
@@ -60,9 +58,14 @@ ComputeDiracThread::subdomainChanged()
 {
   std::set<MooseVariable *> needed_moose_vars;
   _dirac_kernels.updateVariableDependency(needed_moose_vars, _tid);
-  _fe_problem.setActiveElementalMooseVariables(needed_moose_vars, _tid);
-}
 
+  // Update material dependencies
+  std::set<unsigned int> needed_mat_props;
+  _dirac_kernels.updateMatPropDependency(needed_mat_props, _tid);
+
+  _fe_problem.setActiveElementalMooseVariables(needed_moose_vars, _tid);
+  _fe_problem.setActiveMaterialProperties(needed_mat_props, _tid);
+}
 
 void
 ComputeDiracThread::onElement(const Elem * elem)
@@ -72,66 +75,54 @@ ComputeDiracThread::onElement(const Elem * elem)
     return;
 
   std::set<MooseVariable *> needed_moose_vars;
-  const std::vector<MooseSharedPointer<DiracKernel> > & dkernels = _dirac_kernels.getActiveObjects(_tid);
+  const std::vector<std::shared_ptr<DiracKernel>> & dkernels =
+      _dirac_kernels.getActiveObjects(_tid);
 
   // Only call reinitMaterials() if one or more DiracKernels has
   // actually called getMaterialProperty().  Loop over all the
   // DiracKernels and check whether this is the case.
-  bool need_reinit_materials = false;
+  for (const auto & dirac_kernel : dkernels)
   {
-    for (const auto & dirac_kernel : dkernels)
+    // If any of the DiracKernels have had getMaterialProperty()
+    // called, we need to reinit Materials.
+    if (dirac_kernel->getMaterialPropertyCalled())
     {
-      // If any of the DiracKernels have had getMaterialProperty()
-      // called, we need to reinit Materials.
-      if (dirac_kernel->getMaterialPropertyCalled())
-      {
-        need_reinit_materials = true;
-        break;
-      }
+      _fe_problem.reinitMaterials(_subdomain, _tid, /*swap_stateful=*/false);
+      break;
     }
   }
 
-  if (need_reinit_materials)
-    _fe_problem.reinitMaterials(_subdomain, _tid, /*swap_stateful=*/false);
-
   for (const auto & dirac_kernel : dkernels)
   {
-    if (dirac_kernel->hasPointsOnElem(elem))
+    if (!dirac_kernel->hasPointsOnElem(elem))
+      continue;
+    else if (_jacobian == NULL)
     {
-      if (_jacobian == NULL)
-        dirac_kernel->computeResidual();
-      else
+      dirac_kernel->computeResidual();
+      continue;
+    }
+
+    // Get a list of coupled variables from the SubProblem
+    std::vector<std::pair<MooseVariable *, MooseVariable *>> & coupling_entries =
+        dirac_kernel->subProblem().assembly(_tid).couplingEntries();
+
+    // Loop over the list of coupled variable pairs
+    for (auto & it : coupling_entries)
+    {
+      MooseVariable * ivariable = it.first;
+      MooseVariable * jvariable = it.second;
+
+      // A variant of the check that is in
+      // ComputeFullJacobianThread::computeJacobian().  We
+      // only want to call computeOffDiagJacobian() if both
+      // variables are active on this subdomain, and the
+      // off-diagonal variable actually has dofs.
+      if (dirac_kernel->variable().number() == ivariable->number() &&
+          ivariable->activeOnSubdomain(_subdomain) && jvariable->activeOnSubdomain(_subdomain) &&
+          (jvariable->numberOfDofs() > 0))
       {
-        // Get a list of coupled variables from the SubProblem
-        std::vector<std::pair<MooseVariable *, MooseVariable *> > & coupling_entries =
-          dirac_kernel->subProblem().assembly(_tid).couplingEntries();
-
-        // Loop over the list of coupled variable pairs
-        {
-          std::vector<std::pair<MooseVariable *, MooseVariable *> >::iterator
-            var_pair_iter = coupling_entries.begin(),
-            var_pair_end = coupling_entries.end();
-
-          for (; var_pair_iter != var_pair_end; ++var_pair_iter)
-          {
-            MooseVariable * ivariable = var_pair_iter->first;
-            MooseVariable * jvariable = var_pair_iter->second;
-
-            // A variant of the check that is in
-            // ComputeFullJacobianThread::computeJacobian().  We
-            // only want to call computeOffDiagJacobian() if both
-            // variables are active on this subdomain, and the
-            // off-diagonal variable actually has dofs.
-            if (dirac_kernel->variable().number() == ivariable->number()
-                && ivariable->activeOnSubdomain(_subdomain)
-                && jvariable->activeOnSubdomain(_subdomain)
-                && (jvariable->numberOfDofs() > 0))
-            {
-              dirac_kernel->subProblem().prepareShapes(jvariable->number(), _tid);
-              dirac_kernel->computeOffDiagJacobian(jvariable->number());
-            }
-          }
-        }
+        dirac_kernel->subProblem().prepareShapes(jvariable->number(), _tid);
+        dirac_kernel->computeOffDiagJacobian(jvariable->number());
       }
     }
   }
@@ -155,6 +146,7 @@ void
 ComputeDiracThread::post()
 {
   _fe_problem.clearActiveElementalMooseVariables(_tid);
+  _fe_problem.clearActiveMaterialProperties(_tid);
 }
 
 void

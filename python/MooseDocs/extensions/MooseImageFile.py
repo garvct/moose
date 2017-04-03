@@ -1,4 +1,3 @@
-import re
 import os
 from markdown.util import etree
 import logging
@@ -7,86 +6,69 @@ log = logging.getLogger(__name__)
 import MooseDocs
 from markdown.inlinepatterns import Pattern
 from MooseCommonExtension import MooseCommonExtension
-import utils
 
 class MooseImageFile(MooseCommonExtension, Pattern):
     """
     Markdown extension for handling images.
 
     Usage:
-      !image image_file.png|jpg|etc attribute=setting
+     !image image_file.png|jpg|etc attribute=setting
 
-    All images/media should be stored in docs/media
+    Settings:
+      caption[str]: Creates a figcaption tag with the supplied text applied.
+
+    All image filenames should be supplied as relative to the docs directory, i.e., media/my_image.png
     """
 
     # Find !image /path/to/file attribute=setting
     RE = r'^!image\s+(.*?)(?:$|\s+)(.*)'
 
-    def __init__(self, root=None, **kwargs):
-        MooseCommonExtension.__init__(self)
-        Pattern.__init__(self, self.RE, **kwargs)
+    def __init__(self, markdown_instance=None, **kwargs):
+        MooseCommonExtension.__init__(self, **kwargs)
+        Pattern.__init__(self, self.RE, markdown_instance)
+        self._settings['caption'] = None
 
-        self._root = os.path.join(root, 'docs/media')
+    def createImageElement(self, rel_filename, settings):
+        """
+        Create the element containing the image, this is a separate function to allow for other objects
+        (i.e., MooseFigure) to utilize this class to build similar html.
 
-        # Valid settings for MOOS specific documentation features
-        # All other markdown 'attributes' will be treated as HTML
-        # style settings
-        self._settings = {'caption' : None}
+        Inputs:
+          rel_filename[str]: The path to the image relative to the git repository.
+          settings[dict]: The settings extracted via getSettings() method.
+        """
+        # Read the file and create element
+        filename = MooseDocs.abspath(rel_filename)
+        if not os.path.exists(filename):
+            return self.createErrorElement('File not found: {}'.format(rel_filename))
+
+        # Create the figure element
+        el = self.applyElementSettings(etree.Element('div'), settings)
+
+        card = etree.SubElement(el, 'div')
+        card.set('class', 'card')
+
+        img_card = etree.SubElement(card, 'div')
+        img_card.set('class', 'card-image')
+
+        img = etree.SubElement(img_card, 'img')
+        img.set('src', os.path.relpath(filename, os.getcwd()))
+        img.set('class', 'materialboxed')
+
+        # Add caption
+        if settings['caption']:
+            caption = etree.SubElement(card, 'div')
+            p = etree.SubElement(caption, 'p')
+            p.set('class', 'moose-caption')
+            p.set('align', "justify")
+            p.text = settings['caption']
+
+        return el
 
     def handleMatch(self, match):
         """
         process settings associated with !image markdown
         """
-
         rel_filename = match.group(2)
-
-        # A tuple separating specific MOOSE documentation features (self._settings) from HTML styles
-        settings, styles = self.getSettings(match.group(3))
-
-        # Read the file and create element
-        filename = self.checkFilename(rel_filename)
-
-        if not filename:
-            el = self.createErrorElement(rel_filename, message='file not found')
-        else:
-            # When aligning to one side or another, we need to adjust the margins
-            # on the opisite side... silly looking buy necessary
-            reverse_margin = { 'left' : 'right',
-                               'right' : 'left',
-                               'None' : 'none'}
-
-            el_list = {}
-            el_list['div'] = etree.Element('div')
-            el_list['figure'] = etree.SubElement(el_list['div'], 'figure')
-            el_list['img'] = etree.SubElement(el_list['figure'], 'img')
-            el_list['img'].set('src', os.path.join('/media', os.path.basename(filename)))
-
-            # Set the default figcaption text alignment
-            el_list['figure'].set('style', 'text-align: left; display: table;')
-
-            # Set any extra supplied attributes
-            if el_list['div'].get('style') != None:
-                previous_style = el_list['div'].get('style')
-            else:
-                previous_style = ''
-            for attribute in styles.keys():
-                if attribute == 'align':
-                    el_list['div'].set('style', ';'.join(['text-align: -moz-{}; text-align: -webkit-{};'.format(styles[attribute],
-                                                                                                                styles[attribute]),
-                                                          previous_style]))
-                elif attribute == 'float' and styles[attribute] is not None:
-                    el_list['figure'].set('style', el_list['figure'].get('style') + \
-                                          'float: {}; margin-{}: 20px'.format(styles[attribute], reverse_margin[styles[attribute]]))
-                elif styles[attribute] != None:
-                    el_list['img'].set(attribute, str(styles[attribute]))
-
-            # if caption set, add figcaption
-            if settings['caption'] != None:
-                # Unset the large default bottom-margin for figcaption
-                el_list['img'].set('style', 'margin-bottom: unset;')
-                el_list['figcaption'] = etree.SubElement(el_list['figure'], 'figcaption')
-                el_list['figcaption'].text = settings['caption']
-
-            el = el_list['div']
-
-        return el
+        settings = self.getSettings(match.group(3))
+        return self.createImageElement(rel_filename, settings)

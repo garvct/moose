@@ -1,42 +1,30 @@
-import re
-import os
-import copy
-import collections
 import logging
 log = logging.getLogger(__name__)
 
-from markdown.inlinepatterns import Pattern
 from markdown.util import etree
 from MooseSyntaxBase import MooseSyntaxBase
-import utils
-import MooseDocs
 
 class MooseObjectSyntax(MooseSyntaxBase):
     """
     Extracts the description from a MooseObject parameters.
 
     Markdown Syntax:
-    !<Keyword> <YAML Syntax> key=value, key1=valu1, etc...
+    !<Keyword> <YAML Syntax> key=value, key1=value1, etc...
 
     Keywords Available:
-        !description - Returns the description added via the 'addClassDescription' method
-        !parameters - Returns a set of tables containing the input parameters
-        !inputfiles - Returns a set of lists containing links to the input files that use the syntax
-        !childobjects - Returns a set of lists containing links to objects that inherit from this class
-        !devel - Returns links to the source code in the repository and doxygen page.
+      !inputfiles - Returns a set of lists containing links to the input files that use the syntax
+      !childobjects - Returns a set of lists containing links to objects that inherit from this class
     """
 
-    RE = r'^!(description|parameters|inputfiles|childobjects|devel)\s+(.*?)(?:$|\s+)(.*)'
+    RE = r'^!(inputfiles|childobjects)\s+(.*?)(?:$|\s+)(.*)'
 
-    def __init__(self, yaml=None, syntax=None, input_files=dict(), child_objects=dict(), root=None, repo=None, **kwargs):
-        MooseSyntaxBase.__init__(self, self.RE, yaml=yaml, syntax=syntax, **kwargs)
+    def __init__(self, database=None, repo=None, **kwargs):
+        super(MooseObjectSyntax, self).__init__(self.RE, **kwargs)
 
         # Input arguments
-        self._input_files = input_files
-        self._child_objects = child_objects
-        self._root = root
+        self._input_files = database.inputs
+        self._child_objects = database.children
         self._repo = repo
-        self._name = None
 
     def handleMatch(self, match):
         """
@@ -46,175 +34,69 @@ class MooseObjectSyntax(MooseSyntaxBase):
         # Extract match options and settings
         action = match.group(2)
         syntax = match.group(3)
-        settings, styles = self.getSettings(match.group(4))
+
+        # Extract Settings
+        settings = self.getSettings(match.group(4))
 
         # Locate description
-        node = self._yaml.find(syntax)
-        if not node:
-            return self.createErrorElement(message='Failed to locate {} syntax.'.format(syntax))
-
-        # Determine object name
-        self._name = node['name'].split('/')[-1]
-
-        if action == 'description':
-            el = self.descriptionElement(node, styles)
-        elif action == 'parameters':
-            el = self.parametersElement(node, styles)
+        info = self.getObject(syntax)
+        if not info:
+            el = self.createErrorElement('Failed to locate MooseObject with syntax in command: !{} {}'.format(action, syntax), error=False)
         elif action == 'inputfiles':
-            el = self.inputfilesElement(node, styles)
+            el = self.inputfilesElement(info, settings)
         elif action == 'childobjects':
-            el = self.childobjectsElement(node, styles)
-        elif action == 'devel':
-            el = self.develElement(node, styles)
-        elif action == 'subobjects':
-            el = self.subobjectsElement(node, styles)
+            el = self.childobjectsElement(info, settings)
         return el
 
-    def descriptionElement(self, node, styles):
-        """
-        Return the class description html element.
-
-        Args:
-            node[dict]: YAML data node.
-            styles[dict]: Styles from markdown.
-        """
-
-        if ('description' not in node) or (not node['description']):
-            return self.createErrorElement(message='Failed to locate class description for {} syntax.'.format(node['name']))
-
-        # Create the html element with supplied styles
-        el = self.addStyle(etree.Element('p'), **styles)
-        el.text = node['description']
-        return el
-
-    def parametersElement(self, node, styles):
-        """
-        Return table(s) of input parameters.
-
-        Args:
-            node[dict]: YAML data node.
-            styles[dict]: Styles from markdown.
-        """
-
-        # Create the tables (generate 'Required' and 'Optional' initially so that they come out in the proper order)
-        tables = collections.OrderedDict()
-        tables['Required'] = MooseDocs.MooseObjectParameterTable()
-        tables['Optional'] = MooseDocs.MooseObjectParameterTable()
-
-        # Loop through the parameters in yaml object
-        for param in node['parameters'] or []:
-            name = param['group_name']
-            if not name and param['required']:
-                name = 'Required'
-            elif not name and not param['required']:
-                name = 'Optional'
-
-            if name not in tables:
-                tables[name] = MooseDocs.MooseObjectParameterTable()
-            tables[name].addParam(param)
-
-        el = self.addStyle(etree.Element('div'), **styles)
-        title = etree.SubElement(el, 'h2')
-        title.text = 'Input Parameters'
-        for key, table in tables.iteritems():
-            subtitle = etree.SubElement(el, 'h3')
-            subtitle.text = '{} {}'.format(key, 'Parameters')
-            el.append(table.html())
-        return el
-
-    def inputfilesElement(self, node, styles):
+    def inputfilesElement(self, info, settings):
         """
         Return the links to input files and child objects.
 
         Args:
-            node[dict]: YAML data node.
-            styles[dict]: Styles from markdown.
+          node[dict]: YAML data node.
+          styles[dict]: Styles from markdown.
         """
         # Print the item information
-        el = self.addStyle(etree.Element('div'), **styles)
-        self._listhelper(node, 'Input Files', el, self._input_files)
+        el = self.applyElementSettings(etree.Element('div'), settings)
+        el.set('id', '#input-files')
+        el.set('class', 'section scrollspy')
+        self._listhelper(info, 'Input Files', el, self._input_files)
         return el
 
-    def childobjectsElement(self, node, styles):
+    def childobjectsElement(self, info, settings):
         """
         Return the links to input files and child objects.
 
         Args:
-            node[dict]: YAML data node.
-            styles[dict]: Styles from markdown.
+          node[dict]: YAML data node.
+          styles[dict]: Styles from markdown.
         """
         # Print the item information
-        el = self.addStyle(etree.Element('div'), **styles)
-        self._listhelper(node, 'Child Objects', el, self._child_objects)
+        el = self.applyElementSettings(etree.Element('div'), settings)
+        el.set('id', '#child-objects')
+        el.set('class', 'section scrollspy')
+        self._listhelper(info, 'Child Objects', el, self._child_objects)
         return el
 
-    def develElement(self, node, styles):
-        """
-        Return the developer doxygen, github links.
-
-        Args:
-            node[dict]: YAML data node.
-            styles[dict]: Styles from markdown.
-        """
-
-        if not self._repo:
-            el = createErrorElement(message="Attempting to create source links to repository, but the 'repo' configuration option was not supplied.")
-
-        el = self.addStyle(etree.Element('div'), **styles)
-
-        for key, syntax in self._syntax.iteritems():
-            if syntax.hasObject(self._name):
-                include = syntax.filenames(self._name)[0]
-                rel_include = os.path.relpath(include, self._root)
-
-                p = etree.SubElement(el, 'p')
-                p.text = 'Include:&nbsp;'
-
-                a = etree.SubElement(p, 'a')
-                a.set('href', os.path.join(self._repo, rel_include))
-                a.text = self._name
-
-                source = include.replace('/include/', '/src/').replace('.h', '.C')
-                if os.path.exists(source):
-
-                    p = etree.SubElement(el, 'p')
-                    p.text = 'Source:&nbsp;'
-
-                    rel_source = os.path.relpath(source, self._root)
-                    a = etree.SubElement(p, 'a')
-                    a.set('href', os.path.join(self._repo, rel_source))
-                    a.text = self._name
-
-                    if syntax.doxygen:
-                        p = etree.SubElement(el, 'p')
-                        p.text = 'Doxygen:&nbsp;'
-                        a = etree.SubElement(p, 'a')
-                        a.set('href', "{}class{}.html".format(syntax.doxygen, self._name))
-                        a.text = self._name
-
-        return el
-
-
-    def _listhelper(self, node, title, parent, items):
+    def _listhelper(self, info, title, parent, items):
         """
         Helper method for dumping link lists.
 
         Args:
-            node[dict]: YAML data node.
-            title[str]: The level two header to apply to lists.
-            parent[etree.Element]: The parent element the headers and lists are to be applied
-            items[dict]: Dictionary of databases containg link information
+          info: MooseObjectInfo object.
+          title[str]: The level two header to apply to lists.
+          parent[etree.Element]: The parent element the headers and lists are to be applied
+          items[dict]: Dictionary of databases containing link information
         """
-
         has_items = False
         for k, db in items.iteritems():
-            if self._name in db:
+            if info.name in db:
                 has_items = True
                 h3 = etree.SubElement(parent, 'h3')
                 h3.text = k
                 ul = etree.SubElement(parent, 'ul')
                 ul.set('style', "max-height:350px;overflow-y:Scroll")
-                for j in db[self._name]:
+                for j in db[info.name]:
                     ul.append(j.html())
 
         if has_items:

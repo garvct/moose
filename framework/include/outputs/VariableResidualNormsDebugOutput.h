@@ -20,12 +20,12 @@
 #include "PetscOutput.h"
 
 // libMesh includes
-#include "libmesh/transient_system.h" // TransientNonlinearImplicitSystem typedef
+#include "libmesh/system.h"
 
 // Forward declerations
 class VariableResidualNormsDebugOutput;
 
-template<>
+template <>
 InputParameters validParams<VariableResidualNormsDebugOutput>();
 
 /**
@@ -36,7 +36,6 @@ InputParameters validParams<VariableResidualNormsDebugOutput>();
 class VariableResidualNormsDebugOutput : public BasicOutput<PetscOutput>
 {
 public:
-
   /**
    * Class constructor
    * @param parameters Object input parameters
@@ -44,14 +43,13 @@ public:
   VariableResidualNormsDebugOutput(const InputParameters & parameters);
 
 protected:
-
   /**
    * Perform the debugging output
    */
   virtual void output(const ExecFlagType & type) override;
 
   /// Reference to libMesh system
-  TransientNonlinearImplicitSystem & _sys;
+  System & _sys;
 };
 
 #endif // VARIABLERESIDUALNORMSDEBUGOUTPUT_H

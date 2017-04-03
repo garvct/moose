@@ -13,7 +13,7 @@
 
 class PorousFlowDarcyBase;
 
-template<>
+template <>
 InputParameters validParams<PorousFlowDarcyBase>();
 
 /**
@@ -27,35 +27,36 @@ public:
   PorousFlowDarcyBase(const InputParameters & parameters);
 
 protected:
+  virtual Real computeQpResidual() override;
+  virtual void computeResidual() override;
+  virtual void computeJacobian() override;
+  virtual void computeOffDiagJacobian(unsigned int jvar) override;
+
   /// the Darcy part of the flux (this is the non-upwinded part)
-  virtual Real darcyQp(unsigned int ph);
+  virtual Real darcyQp(unsigned int ph) const;
 
   /// Jacobian of the Darcy part of the flux
-  virtual Real darcyQpJacobian(unsigned int jvar, unsigned int ph);
-
-  virtual Real computeQpResidual();
-
-  virtual void computeResidual();
-
-  virtual void computeJacobian();
-
-  virtual void computeOffDiagJacobian(unsigned int jvar);
+  virtual Real darcyQpJacobian(unsigned int jvar, unsigned int ph) const;
 
   /** The mobility of the fluid.  For multi-component Darcy flow
    * this is mass_fraction * fluid_density * relative_permeability / fluid_viscosity
    * @param nodenum The node-number to evaluate the mobility for
    * @param phase the fluid phase number
    */
-  virtual Real mobility(unsigned nodenum, unsigned phase);
+  virtual Real mobility(unsigned nodenum, unsigned phase) const;
 
   /** The derivative of mobility with respect to PorousFlow variable pvar
    * @param nodenum The node-number to evaluate the mobility for
    * @param phase the fluid phase number
    * @param pvar the PorousFlow variable pvar
    */
-  virtual Real dmobility(unsigned nodenum, unsigned phase, unsigned pvar);
+  virtual Real dmobility(unsigned nodenum, unsigned phase, unsigned pvar) const;
 
-  enum JacRes { CALCULATE_RESIDUAL=0, CALCULATE_JACOBIAN=1 };
+  enum JacRes
+  {
+    CALCULATE_RESIDUAL = 0,
+    CALCULATE_JACOBIAN = 1
+  };
 
   /**
    * Full upwinding of both the residual and Jacobians.
@@ -78,37 +79,40 @@ protected:
   const MaterialProperty<RealTensorValue> & _permeability;
 
   /// d(permeabiity)/d(porous-flow variable)
-  const MaterialProperty<std::vector<RealTensorValue> > & _dpermeability_dvar;
+  const MaterialProperty<std::vector<RealTensorValue>> & _dpermeability_dvar;
+
+  /// d(permeabiity)/d(grad(porous-flow variable))
+  const MaterialProperty<std::vector<std::vector<RealTensorValue>>> & _dpermeability_dgradvar;
 
   /// Fluid density for each phase (at the node)
-  const MaterialProperty<std::vector<Real> > & _fluid_density_node;
+  const MaterialProperty<std::vector<Real>> & _fluid_density_node;
 
   /// Derivative of the fluid density for each phase wrt PorousFlow variables (at the node)
-  const MaterialProperty<std::vector<std::vector<Real> > > & _dfluid_density_node_dvar;
+  const MaterialProperty<std::vector<std::vector<Real>>> & _dfluid_density_node_dvar;
 
   /// Fluid density for each phase (at the qp)
-  const MaterialProperty<std::vector<Real> > & _fluid_density_qp;
+  const MaterialProperty<std::vector<Real>> & _fluid_density_qp;
 
   /// Derivative of the fluid density for each phase wrt PorousFlow variables (at the qp)
-  const MaterialProperty<std::vector<std::vector<Real> > > & _dfluid_density_qp_dvar;
+  const MaterialProperty<std::vector<std::vector<Real>>> & _dfluid_density_qp_dvar;
 
   /// Viscosity of each component in each phase
-  const MaterialProperty<std::vector<Real> > & _fluid_viscosity;
+  const MaterialProperty<std::vector<Real>> & _fluid_viscosity;
 
   /// Derivative of the fluid viscosity for each phase wrt PorousFlow variables
-  const MaterialProperty<std::vector<std::vector<Real> > > & _dfluid_viscosity_dvar;
+  const MaterialProperty<std::vector<std::vector<Real>>> & _dfluid_viscosity_dvar;
 
   /// Nodal pore pressure in each phase
-  const MaterialProperty<std::vector<Real> > & _pp;
+  const MaterialProperty<std::vector<Real>> & _pp;
 
   /// Gradient of the pore pressure in each phase
-  const MaterialProperty<std::vector<RealGradient> > & _grad_p;
+  const MaterialProperty<std::vector<RealGradient>> & _grad_p;
 
   /// Derivative of Grad porepressure in each phase wrt grad(PorousFlow variables)
-  const MaterialProperty<std::vector<std::vector<Real> > > & _dgrad_p_dgrad_var;
+  const MaterialProperty<std::vector<std::vector<Real>>> & _dgrad_p_dgrad_var;
 
   /// Derivative of Grad porepressure in each phase wrt PorousFlow variables
-  const MaterialProperty<std::vector<std::vector<RealGradient> > > & _dgrad_p_dvar;
+  const MaterialProperty<std::vector<std::vector<RealGradient>>> & _dgrad_p_dvar;
 
   /// PorousFlow UserObject
   const PorousFlowDictator & _porousflow_dictator;
